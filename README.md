@@ -1,44 +1,124 @@
-# Clapet
+# 🐾 Clapet
 
-A quirky little desktop pet that lives on your screen. Built with Electron.
+**Clapet** — это забавный desktop-питомец, который живёт прямо на вашем рабочем столе. Он ходит по экрану, реагирует на клики, отвечает на вопросы через ИИ и просто поднимает настроение. Собран на Electron.
 
 <p align="center">
-  <img src="build/icon.png" width="120" alt="Clapet">
+  <img src="build/icon.png" width="128" alt="Clapet logo">
 </p>
 
-## Features
+---
 
-- **Desktop pet** — walks around, reacts to clicks, drag-and-drop
-- **Radial menu** — right-click for actions: Think, Happy, Sleep, Feed, Walk, Settings
-- **AI chat** — Ask button to talk with Claude/OpenAI/Groq/etc.
-- **Auto-walk** — toggles roaming around the screen
-- **Fluent-style icons** — clean SVG icons throughout
-- **Settings panel** — configure AI provider, API key, and model
-- **Self-contained** — packaged as a Windows installer
+## ✨ Возможности
 
-## Quick start
+- 🖥️ **Живой питомец** — бегает по экрану, моргает, реагирует на перетаскивание
+- 🎯 **Радиальное меню** — правый клик открывает круглое меню с действиями
+- 🤖 **ИИ-чат** — кнопка Ask для общения с нейросетью
+- 🚶 **Авто-ходьба** — питомец сам гуляет по экрану (вкл/выкл)
+- 😴 **Режимы** — Think, Happy, Sleep, Feed — каждый со своей анимацией
+- ⚙️ **Настройки** — выбор провайдера ИИ, API-ключ, модель
+- 🎨 **Fluent-иконки** — все иконки в стиле Microsoft Fluent UI (SVG)
+- 🟠 **Оранжевая тема** — стильный тёмно-оранжевый дизайн (#b54a30)
+- 🔒 **Скрытый Electron** — никаких следов Electron в userAgent, никаких F12/DevTools
+- 📦 **Готовый установщик** — Windows NSIS installer
+
+---
+
+## 🚀 Быстрый старт
 
 ```bash
+# Установка зависимостей
 npm install
+
+# Запуск
 npm start
 ```
 
-## Build
+---
+
+## 🏗️ Сборка установщика
 
 ```bash
 npm run build
 ```
 
-Output in `dist/`:
-- `Clapet-0.1.0-setup.exe` — NSIS installer
-- `win-unpacked/Clapet.exe` — portable version
+После сборки в папке `dist/` появятся:
 
-## Tech
+| Файл | Описание |
+|------|----------|
+| `Clapet-0.1.0-setup.exe` | NSIS-установщик (одним кликом) |
+| `win-unpacked/Clapet.exe` | Портативная версия (без установки) |
 
-- Electron 33
-- Vanilla JS (no frameworks)
-- `keyspy` for global keyboard detection
+---
 
-## Author
+## 🧠 ИИ-провайдеры
 
-[S1sTeam](https://github.com/S1sTeam)
+Поддерживаются все популярные API:
+
+- OpenAI
+- Anthropic Claude
+- Google Gemini
+- Groq
+- DeepSeek
+- Mistral
+- OpenRouter
+- Together AI
+- Perplexity
+- xAI (Grok)
+- GitHub Models
+- Custom (любой OpenAI-совместимый API)
+
+Настройка — через меню Settings (шестерёнка).
+
+---
+
+## 🛠️ Технологии
+
+| Компонент | Что используется |
+|-----------|-----------------|
+| **Фреймворк** | Electron 33 |
+| **Язык** | Vanilla JavaScript (без React/Vue) |
+| **Стили** | CSS (кастомные, без библиотек) |
+| **Клавиши** | `keyspy` — глобальный перехват нажатий |
+| **Сборка** | electron-builder 26 |
+| **Платформа** | Windows x64 |
+
+---
+
+## 📁 Структура проекта
+
+```
+clapet/
+├── build/
+│   └── icon.png           # Иконка приложения
+├── src/
+│   ├── index.html          # Главная страница
+│   ├── main.js             # Логика питомца (рендерер)
+│   └── styles.css          # Стили
+├── dist/                   # Сборка (после npm run build)
+├── main.js                 # Electron main process
+├── package.json            # Конфиг и зависимости
+├── run.bat                 # Запуск одним кликом
+└── run-nogpu.bat           # Запуск без GPU
+```
+
+---
+
+## 📋 TODO
+
+- [ ] Добавить больше анимаций/состояний
+- [ ] Поддержка macOS/Linux
+- [ ] Свои скины/темы оформления
+- [ ] Drag & drop файлов на питомца
+- [ ] Звуковые эффекты
+
+---
+
+## 👤 Автор
+
+**S1sTeam**
+
+---
+
+## ⚠️ Примечание
+
+При повторной сборке (`npm run build`) убедитесь, что предыдущий процесс Clapet.exe закрыт — иначе сборка упадёт с ошибкой `EBUSY`. Используйте `taskkill /f /im Clapet.exe` перед сборкой.
