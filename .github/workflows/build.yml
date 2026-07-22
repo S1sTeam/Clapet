@@ -73,15 +73,66 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: List artifacts
-        run: ls -laR artifacts
+      - name: Prepare assets
+        run: |
+          mkdir release-assets
+          find artifacts -type f -exec cp {} release-assets/ \;
 
-      - uses: softprops/action-gh-release@v2
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG="${{ github.ref_name }}"
+          REL_NUM="${TAG#v}"; REL_NUM="${REL_NUM%%.*}"
+          PREV_TAG=$(git tag --sort=-creatordate | sed -n '2p')
+
+          cat > body.md << BODYEOF
+          # 🎉 Release #${REL_NUM} — Clapet
+
+          ## 📥 Downloads
+
+          | Platform | Architecture | File |
+          |----------|-------------|------|
+          | Windows | x64 | \`Clapet-${TAG}-win-x64.exe\` |
+          | Windows | ARM64 | \`Clapet-${TAG}-win-arm64.exe\` |
+          | Linux | x64 | \`Clapet-${TAG}-linux-x64.AppImage\` |
+          | Linux | x64 | \`Clapet-${TAG}-linux-deb.deb\` |
+          | macOS | x64 | \`Clapet-${TAG}-mac-x64.dmg\` |
+          | macOS | ARM64 | \`Clapet-${TAG}-mac-arm64.dmg\` |
+
+          BODYEOF
+
+          echo "## 📝 Changelog" >> body.md
+          echo "" >> body.md
+
+          if [ -n "$PREV_TAG" ]; then
+            CHANGES=$(git log --no-merges --pretty=format:"- %s" "$PREV_TAG..HEAD")
+            if [ -z "$CHANGES" ]; then
+              echo "_No changes since previous release_" >> body.md
+            else
+              echo "$CHANGES" >> body.md
+            fi
+          else
+            echo "_Initial release_" >> body.md
+          fi
+
+          echo "" >> body.md
+          echo "---" >> body.md
+          echo "" >> body.md
+          echo "> **Note:** macOS builds are unsigned. Gatekeeper may show a warning." >> body.md
+          echo "> Run \`xattr -dr com.apple.quarantine /Applications/Clapet.app\` to bypass." >> body.md
+          echo ">" >> body.md
+          echo "> Windows builds are unsigned. SmartScreen may show a warning." >> body.md
+
+      - uses: ncipollo/release-action@v1
         with:
-          files: artifacts/**/*
-          generate_release_notes: true
-          make_latest: true
+          artifacts: "release-assets/*"
+          bodyFile: "body.md"
+          makeLatest: true
