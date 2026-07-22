@@ -19,7 +19,7 @@
 - 🎨 **Fluent-иконки** — все иконки в стиле Microsoft Fluent UI (SVG)
 - 🟠 **Оранжевая тема** — стильный тёмно-оранжевый дизайн (#b54a30)
 - 🔒 **Скрытый Electron** — никаких следов Electron в userAgent, никаких F12/DevTools
-- 📦 **Готовый установщик** — Windows NSIS installer
+- 📦 **Кроссплатформенность** — Windows, Linux, macOS
 
 ---
 
@@ -35,18 +35,28 @@ npm start
 
 ---
 
-## 🏗️ Сборка установщика
+## 🏗️ Сборка
+
+### Локальная
 
 ```bash
 npm run build
 ```
 
-После сборки в папке `dist/` появятся:
+### CI/CD (GitHub Actions)
 
-| Файл | Описание |
-|------|----------|
-| `Clapet-0.1.0-setup.exe` | NSIS-установщик (одним кликом) |
-| `win-unpacked/Clapet.exe` | Портативная версия (без установки) |
+При пуше тега (например `v0.2.0`) сборки всех платформ собираются автоматически:
+
+| Платформа | Формат |
+|-----------|--------|
+| Windows x64 | `.exe` (NSIS installer) |
+| Windows ARM64 | `.exe` (NSIS installer) |
+| Linux x64 | `.AppImage` |
+| Linux x64 | `.deb` |
+| macOS x64 | `.dmg` |
+| macOS ARM64 | `.dmg` |
+
+Скачать — вкладка **Actions** → последний запуск → **Artifacts**.
 
 ---
 
@@ -80,7 +90,8 @@ npm run build
 | **Стили** | CSS (кастомные, без библиотек) |
 | **Клавиши** | `keyspy` — глобальный перехват нажатий |
 | **Сборка** | electron-builder 26 |
-| **Платформа** | Windows x64 |
+| **CI/CD** | GitHub Actions |
+| **Платформы** | Windows x64/ARM64, Linux x64, macOS x64/ARM64 |
 
 ---
 
@@ -106,7 +117,6 @@ clapet/
 ## 📋 TODO
 
 - [ ] Добавить больше анимаций/состояний
-- [ ] Поддержка macOS/Linux
 - [ ] Свои скины/темы оформления
 - [ ] Drag & drop файлов на питомца
 - [ ] Звуковые эффекты
