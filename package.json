@@ -1,6 +1,6 @@
 {
   "name": "clapet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Clapet - a Claude desktop pet",
   "author": "S1sTeam",
   "main": "main.js",
@@ -30,7 +30,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^33.0.0",
+    "electron": "^33.4.11",
     "electron-builder": "^26.15.3"
   },
   "dependencies": {

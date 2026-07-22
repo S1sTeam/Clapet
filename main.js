@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain, screen, Menu } = require('electron');
 const path = require('path');
+const http = require('http');
+const https = require('https');
 
 let mainWindow;
 
@@ -9,23 +11,23 @@ app.userAgentFallback = app.userAgentFallback
   .replace(/Electron\/\S+\s*/g, '')
   .replace(/\s+Electron\S*/g, '');
 
-app.commandLine.appendSwitch('in-process-gpu');
+
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 187,
-    height: 204,
+    width: 876,
+    height: 574,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    resizable: true,
+    resizable: false,
     minWidth: 187,
     minHeight: 204,
     webPreferences: {
       contextIsolation: false,
       nodeIntegration: true,
-      backgroundThrottling: false,
+      backgroundThrottling: true,
     },
   });
 
@@ -85,8 +87,11 @@ function createWindow() {
     });
   });
 
-  setInterval(() => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
+  let cursorIntervalId = null;
+  function startCursorTracking() {
+    if (cursorIntervalId) return;
+    cursorIntervalId = setInterval(() => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
       try {
         const cursor = screen.getCursorScreenPoint();
         const [winX, winY] = mainWindow.getPosition();
@@ -95,8 +100,20 @@ function createWindow() {
           clientY: cursor.y - winY,
         });
       } catch (e) {}
-    }
-  }, 16);
+    }, 100);
+  }
+  startCursorTracking();
+
+  mainWindow.on('minimize', () => {
+    mainWindow.webContents.send('window-hidden');
+    if (cursorIntervalId) { clearInterval(cursorIntervalId); cursorIntervalId = null; }
+  });
+  mainWindow.on('restore', () => {
+    mainWindow.webContents.send('window-visible');
+    startCursorTracking();
+  });
+  mainWindow.on('blur', () => mainWindow.webContents.send('window-hidden'));
+  mainWindow.on('focus', () => mainWindow.webContents.send('window-visible'));
 
   mainWindow.webContents.on('before-input-event', (e, input) => {
     if (input.type === 'keyDown') {
@@ -110,6 +127,92 @@ function createWindow() {
 
   mainWindow.webContents.on('devtools-opened', () => {
     mainWindow.webContents.closeDevTools();
+  });
+
+  ipcMain.handle('show-launcher', async () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const display = screen.getPrimaryDisplay().workArea;
+    const lx = Math.round((display.width - 876) / 2);
+    const ly = Math.round((display.height - 574) / 2);
+    await mainWindow.setBounds({ x: lx, y: ly, width: 876, height: 574 });
+    mainWindow.setMinimumSize(876, 574);
+    mainWindow.setResizable(true);
+  });
+
+  ipcMain.handle('show-pet', async () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const [x, y] = mainWindow.getPosition();
+    await mainWindow.setBounds({ x, y, width: 187, height: 204 });
+    mainWindow.setMinimumSize(187, 204);
+    mainWindow.setMaximumSize(187, 204);
+    mainWindow.setResizable(false);
+  });
+
+  ipcMain.on('minimize-window', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
+  });
+
+  ipcMain.on('close-window', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
+  });
+
+  ipcMain.on('set-always-on-top', (e, value) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setAlwaysOnTop(value);
+  });
+
+  // ── Proxy ──
+  let currentProxyConfig = null;
+
+  ipcMain.on('proxy-config', (e, cfg) => {
+    currentProxyConfig = cfg;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    try {
+      if (cfg && cfg.enabled && cfg.host && cfg.port) {
+        const proxyUrl = `${cfg.protocol}://${cfg.host}:${cfg.port}`;
+        mainWindow.webContents.session.setProxy({
+          proxyRules: proxyUrl,
+          proxyBypassRules: '<local>',
+        });
+      } else {
+        mainWindow.webContents.session.setProxy({
+          proxyRules: '',
+          proxyBypassRules: '',
+        });
+      }
+    } catch (e) { console.error('proxy config error:', e); }
+  });
+
+  // Handle proxy auth
+  mainWindow.webContents.session.on('login', (event, requestInfo, authInfo, callback) => {
+    if (currentProxyConfig && currentProxyConfig.enabled && currentProxyConfig.username) {
+      event.preventDefault();
+      callback(currentProxyConfig.username, currentProxyConfig.password || '');
+    }
+  });
+
+  ipcMain.handle('test-proxy', async (e, cfg) => {
+    return new Promise(resolve => {
+      if (!cfg.host || !cfg.port) return resolve({ ok: false, error: 'No host/port' });
+      const start = Date.now();
+      const mod = cfg.protocol === 'https' ? https : http;
+      const opts = {
+        hostname: cfg.host,
+        port: parseInt(cfg.port),
+        path: 'https://api.openai.com/v1/models',
+        method: 'CONNECT',
+        timeout: 8000,
+      };
+      if (cfg.username && cfg.password) {
+        opts.headers = { 'Proxy-Authorization': 'Basic ' + Buffer.from(cfg.username + ':' + cfg.password).toString('base64') };
+      }
+      const req = mod.request(opts, (res) => {
+        const ms = Date.now() - start;
+        resolve({ ok: true, ms, status: res.statusCode });
+      });
+      req.on('error', (err) => resolve({ ok: false, error: err.message }));
+      req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: 'Timeout' }); });
+      req.end();
+    });
   });
 
   mainWindow.on('closed', () => { mainWindow = null; });
