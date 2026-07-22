@@ -1,0 +1,13 @@
+/* ── Preview Area ── */
+#preview-area {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+#preview-svg {
+  width: 120px;
+  height: 130px;
+}
+#preview-svg .pf {
+  transition: fill 0.3s;
+}

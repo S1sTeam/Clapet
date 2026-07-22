@@ -1,0 +1,245 @@
+/* ── Launcher Layout Skeleton ── */
+#app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+#launcher {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: var(--font-size, 13px);
+  overflow: hidden;
+  line-height: 1.55;
+  border-radius: 24px;
+}
+#launcher input,
+#launcher select,
+#launcher button,
+#launcher textarea {
+  font-size: inherit;
+}
+
+/* ── Header (Titlebar) ── */
+#l-header {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 38px;
+  min-height: 38px;
+  background: var(--bg);
+  -webkit-app-region: drag;
+  gap: 12px;
+}
+
+#l-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#l-app-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+#l-title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.2px;
+}
+
+#l-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 220px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 3px 10px;
+  height: 26px;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-app-region: no-drag;
+}
+#l-search:hover {
+  background: var(--bg-3);
+  border-color: var(--fg-dim);
+}
+#l-search:focus-within {
+  border-color: var(--fg-dim);
+  background: var(--bg-3);
+}
+#l-search input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  color: var(--fg);
+}
+#l-search input::placeholder {
+  color: var(--fg-muted);
+}
+#l-search svg {
+  stroke: var(--fg-muted);
+  flex-shrink: 0;
+}
+
+#l-controls {
+  display: flex;
+  gap: 0;
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+
+.tb-btn {
+  width: 44px;
+  height: 38px;
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.tb-btn:hover {
+  background: var(--bg-2);
+  color: var(--fg);
+}
+.tb-btn:active {
+  background: var(--bg-3);
+}
+
+
+/* ── Body ── */
+#l-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Tab Bar ── */
+#l-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 36px;
+  min-height: 36px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 0 12px;
+  -webkit-app-region: no-drag;
+}
+
+.l-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 14px;
+  border: none;
+  background: none;
+  color: var(--fg-dim);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  position: relative;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.l-tab:hover {
+  color: var(--fg);
+  background: var(--bg-2);
+}
+.l-tab.active {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+.l-tab svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.l-tab.active svg {
+  opacity: 1;
+}
+.l-tab span {
+  line-height: 1;
+}
+
+/* ── Content ── */
+#content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  scrollbar-width: none;
+}
+#content::-webkit-scrollbar {
+  display: none;
+}
+#content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+#content::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 100px;
+  border: none;
+  min-height: 30px;
+}
+#content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
+#content::-webkit-scrollbar-track {
+  background: transparent;
+}
+#content::-webkit-scrollbar-corner {
+  background: transparent;
+}
+#content::-webkit-scrollbar-button {
+  display: none;
+}
+
+.tab-content {
+  display: none;
+}
+.tab-content.active {
+  display: block;
+  min-height: 100%;
+}
+
+.tab-content h2 {
+  font-size: 1.5385rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 16px 0;
+  letter-spacing: -0.3px;
+}
+
+/* ── Card / Control Group ── */
+.card {
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 4px 12px;
+}
+.card.elevation-2 {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.card.elevation-4 {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}

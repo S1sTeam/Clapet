@@ -1,0 +1,198 @@
+/* --- AI Settings Panel --- */
+#settings-panel {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 170px;
+  padding: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  border-radius: var(--radius-md);
+  z-index: 35;
+  pointer-events: auto;
+  max-height: 190px;
+  overflow-y: auto;
+}
+#settings-panel.hidden {
+  display: none !important;
+}
+
+.settings-header {
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 8px;
+}
+
+.settings-row {
+  margin-bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.settings-row label {
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 10px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#provider-select,
+#api-key-input,
+#model-select {
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  padding: 6px 8px;
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: var(--fg);
+  outline: none;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+#provider-select:focus,
+#api-key-input:focus,
+#model-select:focus {
+  border-color: var(--fg-dim);
+}
+
+#provider-select option,
+#model-select option {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+#verify-key-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  padding: 6px 12px;
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+#verify-key-btn:hover {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+}
+#verify-key-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#key-status {
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 10px;
+  margin-top: 2px;
+  color: var(--fg-dim);
+}
+
+.settings-actions {
+  margin-top: 6px;
+  flex-direction: row;
+  justify-content: center;
+}
+
+#settings-close-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  padding: 6px 12px;
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+#settings-close-btn:hover {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+}
+
+#model-input {
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  padding: 6px 8px;
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: var(--fg);
+  outline: none;
+  border-radius: var(--radius-sm);
+}
+#model-input:focus {
+  border-color: var(--fg-dim);
+}
+
+#custom-url-input {
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  padding: 6px 8px;
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: var(--fg);
+  outline: none;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+#custom-url-input:focus {
+  border-color: var(--fg-dim);
+}
+
+#ask-input-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  z-index: 30;
+}
+#ask-input-container.hidden {
+  display: none !important;
+}
+
+#ask-input {
+  flex: 1;
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  padding: 6px 10px;
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: var(--fg);
+  outline: none;
+  border-radius: var(--radius-sm);
+}
+#ask-input:focus {
+  border-color: var(--fg-dim);
+}
+
+#ask-send-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  padding: 6px 12px;
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+#ask-send-btn:hover {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+}
