@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            arch: x64
+            target: nsis
+            suffix: win-x64
+
+          - os: windows-latest
+            platform: win
+            arch: arm64
+            target: nsis
+            suffix: win-arm64
+
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            target: AppImage
+            suffix: linux-x64
+
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            target: deb
+            suffix: linux-deb
+
+          - os: macos-latest
+            platform: mac
+            arch: x64
+            target: dmg
+            suffix: mac-x64
+
+          - os: macos-latest
+            platform: mac
+            arch: arm64
+            target: dmg
+            suffix: mac-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Clapet-${{ github.ref_name }}-${{ matrix.suffix }}
+          path: dist/*
