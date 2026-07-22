@@ -16,40 +16,32 @@ jobs:
           - os: windows-latest
             platform: win
             arch: x64
-            target: nsis
             suffix: win-x64
 
           - os: windows-latest
             platform: win
             arch: arm64
-            target: nsis
             suffix: win-arm64
 
           - os: ubuntu-latest
             platform: linux
             arch: x64
-            target: AppImage
             suffix: linux-x64
-
-          - os: ubuntu-latest
-            platform: linux
-            arch: x64
-            target: deb
-            suffix: linux-deb
 
           - os: macos-latest
             platform: mac
             arch: x64
-            target: dmg
             suffix: mac-x64
 
           - os: macos-latest
             platform: mac
             arch: arm64
-            target: dmg
             suffix: mac-arm64
 
     runs-on: ${{ matrix.os }}
+
+    env:
+      ARCH: ${{ matrix.arch }}
 
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +53,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} ${{ matrix.target }}
+      - run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -94,23 +86,22 @@ jobs:
           PREV_TAG=$(git tag --sort=-creatordate | sed -n '2p')
 
           cat > body.md << BODYEOF
-          # 🎉 Release #${REL_NUM} — Clapet
+          # Release #${REL_NUM} — Clapet
 
-          ## 📥 Downloads
+          ## Downloads
 
           | Platform | Architecture | File |
           |----------|-------------|------|
           | Windows | x64 | \`Clapet-${TAG}-win-x64.exe\` |
           | Windows | ARM64 | \`Clapet-${TAG}-win-arm64.exe\` |
           | Linux | x64 | \`Clapet-${TAG}-linux-x64.AppImage\` |
-          | Linux | x64 | \`Clapet-${TAG}-linux-deb.deb\` |
+          | Linux | x64 | \`Clapet-${TAG}-linux-x64.deb\` |
           | macOS | x64 | \`Clapet-${TAG}-mac-x64.dmg\` |
           | macOS | ARM64 | \`Clapet-${TAG}-mac-arm64.dmg\` |
 
-          BODYEOF
+          ## Changelog
 
-          echo "## 📝 Changelog" >> body.md
-          echo "" >> body.md
+          BODYEOF
 
           if [ -n "$PREV_TAG" ]; then
             CHANGES=$(git log --no-merges --pretty=format:"- %s" "$PREV_TAG..HEAD")
