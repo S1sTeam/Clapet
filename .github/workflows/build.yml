@@ -60,7 +60,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Clapet-${{ github.ref_name }}-${{ matrix.suffix }}
-          path: dist/*
+          path: |
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/*.dmg
+            dist/*.dmg.blockmap
+            dist/*.AppImage
+            dist/*.deb
+            dist/latest*.yml
 
   release:
     needs: build
@@ -94,12 +101,12 @@ jobs:
 
           | Platform | Architecture | File |
           |----------|-------------|------|
-          | Windows | x64 | \`Clapet-${TAG}-win-x64.exe\` |
-          | Windows | ARM64 | \`Clapet-${TAG}-win-arm64.exe\` |
-          | Linux | x64 | \`Clapet-${TAG}-linux-x64.AppImage\` |
-          | Linux | x64 | \`Clapet-${TAG}-linux-x64.deb\` |
-          | macOS | x64 | \`Clapet-${TAG}-mac-x64.dmg\` |
-          | macOS | ARM64 | \`Clapet-${TAG}-mac-arm64.dmg\` |
+          | Windows | x64 | \`Clapet-${TAG}-x64.exe\` |
+          | Windows | ARM64 | \`Clapet-${TAG}-arm64.exe\` |
+          | Linux | x64 | \`Clapet-${TAG}-x64.AppImage\` |
+          | Linux | x64 | \`Clapet-${TAG}-x64.deb\` |
+          | macOS | x64 | \`Clapet-${TAG}-x64.dmg\` |
+          | macOS | ARM64 | \`Clapet-${TAG}-arm64.dmg\` |
 
           ## Changelog
 
