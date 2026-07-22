@@ -25,15 +25,14 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "build/icon.png",
-      "artifactName": "${productName}-${version}-${env.ARCH}.${ext}"
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": true
     },
     "mac": {
       "target": "dmg",
-      "icon": "build/icon.png",
+      "icon": "build/icon.icns",
       "artifactName": "${productName}-${version}-${env.ARCH}.${ext}"
     },
     "linux": {
