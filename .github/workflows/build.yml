@@ -53,7 +53,9 @@ jobs:
 
       - run: npm ci
 
-      - run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }}
+      - run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/upload-artifact@v4
         with:
