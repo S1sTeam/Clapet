@@ -163,18 +163,29 @@ html, body, #root {
   40% { transform: scale(1); opacity: 1; }
 }
 
+#pet-mode, #pet-mode-inner {
+  pointer-events: none !important;
+  background: transparent !important;
+}
+
 #pet-container {
   position: relative;
   width: 187px;
   height: 204px;
   cursor: default;
+  pointer-events: none !important;
 }
 
 #pet-svg {
   width: 100%;
   height: 100%;
   display: block;
-  pointer-events: none;
+  pointer-events: auto !important;
+  cursor: grab;
+}
+
+#pet-svg:active {
+  cursor: grabbing;
 }
 
 .eye-group, #grab-eyes, #think-eyes, #happy-eyes, #glasses {
