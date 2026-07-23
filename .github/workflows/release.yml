@@ -4,9 +4,6 @@ on:
   push:
     tags:
       - "v*"
-    branches:
-      - main
-      - master
   workflow_dispatch:
 
 jobs:
@@ -45,7 +42,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
 
       - name: Install frontend dependencies
         run: |
@@ -61,6 +58,6 @@ jobs:
           tagName: v__VERSION__
           releaseName: "Clapet v__VERSION__"
           releaseBody: "Download Clapet Desktop Pet for Windows, macOS, and Linux."
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
