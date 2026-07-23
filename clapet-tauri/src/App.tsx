@@ -948,16 +948,24 @@ export const App: React.FC = () => {
     };
 
     const handleWindowPointerUp = () => {
+      if (dragHoldTimerRef.current) {
+        clearTimeout(dragHoldTimerRef.current);
+        dragHoldTimerRef.current = null;
+      }
       if (!isDraggingRef.current) return;
       isDraggingRef.current = false;
       setIsDragging(false);
 
       if (!hasMovedRef.current) {
-        // Simple Click Reaction (not during sleep, since we already woke on pointerDown)
+        // Short Click Reaction -> Happy Jump & Particles!
         if (petStateRef.current !== "sleep") {
           setPetState("happy");
-          spawnParticles(["★", "✦", "♥"], "#FFD700");
-          setTimeout(() => setPetState("idle"), 1500);
+          spawnParticles(["★", "✦", "♥", "✨"], "#fe8019");
+          setTimeout(() => setPetState("idle"), 1400);
+        }
+      } else {
+        if (petStateRef.current !== "sleep") {
+          setPetState("idle");
         }
       }
       hasMovedRef.current = false;
@@ -971,17 +979,28 @@ export const App: React.FC = () => {
     };
   }, [view]);
 
+  const dragHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handlePetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || view !== "pet") return;
     if (showRadialMenu) setShowRadialMenu(false);
-    // Electron pattern: immediately wake pet on mousedown (line 49 in main.js)
+    
+    // Wake pet immediately on click
     if (petStateRef.current === "sleep") {
       setPetState("idle");
     }
-    isDraggingRef.current = true;
-    setIsDragging(true);
+    
     hasMovedRef.current = false;
     dragStartRef.current = { x: e.screenX, y: e.screenY };
+
+    // Set a slight hold threshold so short click triggers happy jump, while holding/moving triggers grabbing!
+    isDraggingRef.current = true;
+    if (dragHoldTimerRef.current) clearTimeout(dragHoldTimerRef.current);
+    dragHoldTimerRef.current = setTimeout(() => {
+      if (isDraggingRef.current) {
+        setIsDragging(true);
+      }
+    }, 200);
   };
 
   // ── PKM Right Click Logic ──
@@ -1009,21 +1028,21 @@ export const App: React.FC = () => {
       setShowCookieFly(false);
       setPetState("happy");
       setChewing(true);
-      setThoughtBubbleText("Yummy! 🍪");
-      spawnParticles(["♥", "❤", "✦"], "#ff6b8a");
+      
+      const feedPhrases = lang === "ru" 
+        ? ["Ням-ням! 🍪", "Вкуснотища! ✨", "М-м-м, печенька! 😋", "Omnomnom! 🍪", "Ещё хочу! 🐾"]
+        : ["Nom nom! 🍪", "Yummy! ✨", "Mmm, cookie! 😋", "Omnomnom! 🍪", "More please! 🐾"];
+      const randomPhrase = feedPhrases[Math.floor(Math.random() * feedPhrases.length)];
+      setThoughtBubbleText(randomPhrase);
+      spawnParticles(["♥", "🍪", "✦"], "#ff6b8a");
       addXp(10);
-      setFloatXpText("+10");
-      setTimeout(() => setFloatXpText(null), 1500);
 
-      try {
-        localStorage.setItem("pet_xp", JSON.stringify({ xp: xp + 10, level, cookies: newCookies, lastFeed: now }));
-      } catch (e) {}
-
+      // Chewing animation ends after a short, lively 1.8 seconds (not long)
       setTimeout(() => {
         setChewing(false);
         setThoughtBubbleText(null);
         setPetState("idle");
-      }, 10000);
+      }, 1800);
     }, 600);
   };
 
@@ -1978,9 +1997,20 @@ export const App: React.FC = () => {
                   </filter>
                 </defs>
 
+                {/* Pet Tail */}
+                <g id="tail" className="tail-part">
+                  <path d="M 45 155 Q 28 148 24 162 Q 32 172 45 165 Z" fill={petColor} />
+                </g>
+
                 <g id="body" className="body-part">
-                  <rect x="45" y="100" width="130" height="90" rx="0" fill={petColor} filter="url(#shadow)" />
-                  <rect x="55" y="110" width="110" height="60" rx="0" fill={petColor} opacity="0.2" />
+                  <rect x="45" y="100" width="130" height="90" rx="4" fill={petColor} filter="url(#shadow)" />
+                  <rect x="55" y="110" width="110" height="60" rx="2" fill={petColor} opacity="0.25" />
+                </g>
+
+                {/* Pet Ears */}
+                <g id="ears" className="ears-part">
+                  <polygon points="52,100 64,80 76,100" fill={petColor} />
+                  <polygon points="144,100 156,80 168,100" fill={petColor} />
                 </g>
 
                 <g id="head" className="head-part">

@@ -253,6 +253,27 @@ html, body, #root {
 
 /* ── Fluid Pet Animation States ── */
 
+.ears-part {
+  animation: ear-twitch 4.5s ease-in-out infinite;
+  transform-origin: 110px 100px;
+}
+
+@keyframes ear-twitch {
+  0%, 88%, 100% { transform: rotate(0deg); }
+  92% { transform: rotate(-6deg); }
+  96% { transform: rotate(6deg); }
+}
+
+.tail-part {
+  animation: tail-sway 3.5s ease-in-out infinite;
+  transform-origin: 45px 155px;
+}
+
+@keyframes tail-sway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(10deg); }
+}
+
 .state-idle .body-part {
   animation: breathe var(--breathe-speed, 3s) cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
   transform-origin: 110px 145px;
@@ -608,10 +629,10 @@ html, body, #root {
 
 @keyframes walk-leg-1 {
   0%, 100% { transform: translateY(0) scaleY(1); }
-  50% { transform: translateY(-5px) scaleY(0.82); }
+  50% { transform: translateY(3px) scaleY(0.82); }
 }
 @keyframes walk-leg-2 {
-  0%, 100% { transform: translateY(-5px) scaleY(0.82); }
+  0%, 100% { transform: translateY(3px) scaleY(0.82); }
   50% { transform: translateY(0) scaleY(1); }
 }
 
