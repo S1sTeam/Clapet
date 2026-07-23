@@ -1,224 +1,81 @@
-# 🐾 Clapet
+# 🐾 Clapet v1.0.0
 
-**Clapet** is a fun desktop pet that lives right on your screen. It walks around, reacts to clicks, chats via AI, and brightens your day. Built with Electron.
+**Clapet** is a cute, intelligent virtual desktop pet that lives right on your screen. It wanders around, blinks naturally, speaks via ElevenLabs neural TTS, interacts with AI models, and levels up as you feed it cookies.
 
-<p align="center">
-  <img src="build/icon.png" width="128" alt="Clapet logo">
-</p>
+Now migrated to **Tauri 2.0 + React** for ultra-lightweight performance (~25 MB RAM) and maximum security.
 
 [![Русская версия](README.ru.md)](README.ru.md)
 
 ---
 
-## ✨ Features
+## ✨ What's New in v1.0.0
 
-- 🖥️ **Living pet** — walks across your screen, blinks, reacts to dragging
-- 🎯 **Radial menu** — right-click opens a circular action menu
-- 🤖 **AI chat** — press Ask to talk to an AI model
-- 🚶 **Auto-walk** — the pet wanders around on its own (toggle on/off)
-- 😴 **Moods** — Think, Happy, Sleep, Feed — each with unique animations
-- ⚙️ **Settings** — choose AI provider, API key, model, proxy
-- 🎨 **Fluent icons** — all icons in Microsoft Fluent UI style (SVG)
-- 🟠 **Gruvbox dark theme** — warm dark orange design (#b54a30)
-- 🔒 **Stealth Electron** — no Electron traces in userAgent, no F12/DevTools
-- 📦 **Cross-platform** — Windows, Linux, macOS
+- 🚀 **Tauri 2.0 Engine** — Blazing fast startup, tiny memory footprint (~25MB RAM vs 200MB+ in Electron).
+- 🎙️ **ElevenLabs Neural Voice (TTS)** — Optional professional neural voice speech synthesis for thoughts and AI responses.
+- 🌐 **Full i18n Localization** — Instant one-click toggle between **English (EN)** and **Russian (RU)** across all UI elements, pet thoughts, and AI prompts.
+- 🐾 **Dedicated Pet Customization** — Tailor pet color, opacity (20%–100%), breathing speed, breathing amplitude, and walk speed.
+- 🎨 **Fluid Physics Animations** — Elastic bouncing, lifelike breathing squish/stretch, realistic leg stepping, thinking head-tilt, and cozy sleep Zzz.
+- 📈 **Leveling System & Animated XP Bar** — Earn +10 XP per cookie feed. Features a progressive level curve (30, 60, 120, 240... XP) with an auto-hiding gradient XP bar.
+- 🔍 **Live Search in Launcher** — Real-time instant filtering across all settings tabs as you type.
+- 🛡️ **DevTools & Shortcut Protection** — Completely disables F12, F5, Ctrl+R, Ctrl+Shift+I/J/C, and default browser context menus.
+- 🌐 **Built-in Proxy Support** — Configure HTTP, HTTPS, or SOCKS5 proxies with live connection testing and persistent storage.
+- 🤖 **Multi-Provider AI Engine** — Support for OpenAI, OpenRouter, DeepSeek, Groq, Ollama (local LLMs), and Custom endpoints.
 
 ---
 
-## 🚀 Quick Start
+## 💻 Cross-Platform Support
+
+Clapet v1.0.0 is automatically compiled for all desktop platforms via GitHub Actions:
+
+| Platform | Installer / Package | Status |
+|----------|--------------------|--------|
+| **Windows** (x64) | `.exe` (NSIS), `.msi` | ✅ Stable |
+| **macOS** (Apple Silicon M1/M2/M3) | `.dmg`, `.app` | ✅ Stable |
+| **macOS** (Intel x64) | `.dmg`, `.app` | ✅ Stable |
+| **Linux** (Ubuntu / Debian / Arch) | `.AppImage`, `.deb` | ✅ Stable |
+
+---
+
+## 🚀 Quick Start (Development)
+
+### Requirements
+
+- [Node.js](https://nodejs.org/) (v18+)
+- [Rust](https://www.rust-lang.org/) (stable toolchain)
+
+### Installation & Launch
 
 ```bash
+# Clone the repository
+git clone https://github.com/S1sTeam/Clapet.git
+cd Clapet/clapet-tauri
+
 # Install dependencies
 npm install
 
-# Launch
-npm start
+# Run in dev mode (Vite + Tauri)
+npm run tauri dev
 ```
 
-> **Note:** The `keyspy` native module requires build tools on first install. On Windows, run as admin. On Linux, install `build-essential`. On macOS, Xcode CLI tools are sufficient.
+### Production Build
 
----
-
-## 💻 Platform Support
-
-| Platform | Status | Installer |
-|----------|--------|-----------|
-| Windows x64 | ✅ Full | `.exe` (NSIS) |
-| Windows ARM64 | ✅ Full | `.exe` (NSIS) |
-| Linux x64 | ✅ Full | `.AppImage`, `.deb` |
-| macOS x64 | ✅ Full | `.dmg` |
-| macOS ARM64 | ✅ Full | `.dmg` |
-
----
-
-## 🏗️ Building
-
-### Local build
+To compile a production binary for your current OS:
 
 ```bash
-npm run build
-```
-
-The output goes to `dist/`. Platform targets are configured in `package.json` → `"build"`.
-
-### CI/CD (GitHub Actions)
-
-Tag a version to trigger automated builds:
-
-```bash
-git tag v0.2.0
-git push --tags
-```
-
-GitHub Actions builds all platforms in parallel. Download artifacts from the **Actions** tab → latest run → **Artifacts**.
-
----
-
-## 🤖 AI Providers
-
-Supported providers (configure in Settings ⚙️):
-
-- **OpenAI** — GPT-4, GPT-4o, o1, o3
-- **Anthropic** — Claude 3.5 Sonnet, Claude 3 Opus
-- **Google Gemini** — Gemini 1.5 Pro, Gemini 2.0 Flash
-- **Groq** — Llama 3, Mixtral (fast inference)
-- **DeepSeek** — DeepSeek V2, DeepSeek Coder
-- **Mistral** — Mistral Large, Mistral Small
-- **OpenRouter** — unified access to 200+ models
-- **Together AI** — open-source model hosting
-- **Perplexity** — Sonar, Sonar Pro
-- **xAI (Grok)** — Grok-2, Grok-mini
-- **GitHub Models** — free tier via GitHub token
-- **Custom** — any OpenAI-compatible API (e.g. local LLM)
-
-Proxy support (HTTP/HTTPS/SOCKS) is built in.
-
----
-
-## 🎮 Usage
-
-### Pet Mode
-
-The pet appears as a small 187×204 overlay window. Interact via:
-
-| Action | Input |
-|--------|-------|
-| **Drag** | Click & hold anywhere on the pet, move mouse |
-| **Radial menu** | Right-click on the pet |
-| **Double-click** | Opens Settings panel |
-| **Feed** | 🍪 button in radial menu (+10 XP, 5 min cooldown) |
-| **Walk** | 🚶 toggle — pet wanders around the screen |
-| **Ask** | 💬 type a question, pet responds via AI |
-| **Sleep** | 😴 pet falls asleep with floating "Z" particles |
-
-### Launcher
-
-The main 876×574 launcher window has four tabs:
-
-1. **Launch** — enter pet mode, splash screen preview
-2. **Pet settings** — always-on-top, auto-walk, font size, particles
-3. **AI** — provider, model, API key, custom endpoint
-4. **Main settings** — accent color, proxy config, TTS, about
-
----
-
-## 🎯 Experience System
-
-- Each feed gives **+10 XP**
-- Level formula: `XP_required(n) = 15 * n * (n + 1)`
-  - Level 1: 30 XP, Level 2: 90 XP total, Level 3: 180 XP total...
-- XP bar appears on feed with a smooth fill animation
-- "+10" float text rises and fades out
-- Heart particle burst on level-up
-
----
-
-## 🛠️ Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| **Framework** | Electron 33 |
-| **Language** | Vanilla JavaScript (no framework) |
-| **Styles** | CSS (custom, no libraries) |
-| **State** | LocalStorage persistence |
-| **Key capture** | `keyspy` — global hotkeys |
-| **Builder** | electron-builder 26 |
-| **CI/CD** | GitHub Actions |
-| **Platforms** | Windows x64/ARM64, Linux x64, macOS x64/ARM64 |
-
----
-
-## 📁 Project Structure
-
-```
-clapet/
-├── .github/
-│   └── workflows/
-│       └── build.yml         # CI/CD pipeline
-├── build/
-│   └── icon.png              # App icon
-├── src/
-│   ├── index.html             # Main page
-│   ├── main.js                # Pet logic (renderer)
-│   └── styles.css             # Styles
-├── dist/                      # Build output (after npm run build)
-├── main.js                    # Electron main process
-├── package.json               # Config and dependencies
-├── run.bat                    # One-click launch (Windows)
-└── run-nogpu.bat              # Launch without GPU (Windows)
+npm run tauri build
 ```
 
 ---
 
-## ⚙️ Configuration
+## 🎮 How to Interact
 
-All settings are stored in `localStorage`. Key items:
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `pet_provider` | string | `openai` | Active AI provider |
-| `pet_model` | string | — | Selected model |
-| `pet_key` | string | — | API key |
-| `pet_wander` | int | `0` | Auto-walk enabled |
-| `pet_ontop` | int | `0` | Always-on-top |
-| `pet_color` | string | `#b54a30` | Accent color |
-| `pet_xp` | int | `0` | Experience points |
-| `pet_level` | int | `1` | Current level |
-| `particles_enabled` | int | `1` | Particle effects |
-| `proxy_enabled` | int | `0` | Proxy enabled |
-| `auto_think` | int | `1` | Random thoughts |
-| `tts_enabled` | int | `0` | Text-to-speech |
-
----
-
-## 📋 Roadmap
-
-- [x] Cross-platform builds (Win/Linux/Mac)
-- [x] AI provider integrations
-- [x] XP/leveling system
-- [x] Custom accent colors
-- [ ] More animations and states
-- [ ] Skins/themes
-- [ ] Drag & drop files onto pet
-- [ ] Sound effects
-- [ ] Widget mode (weather, clock)
+- **Right Click (PKM)** on Pet: Opens the circular Radial Action Menu (Feed, Sleep/Wake, Walk/Stop, Ask AI, Settings ⚙️).
+- **Left Click Drag**: Pick up and drag the pet anywhere on your screen.
+- **Feeding**: Feed cookies (15 min cooldown). Each cookie yields +10 XP with particle effects.
+- **Ask AI**: Type your prompt and press **Enter** to receive instant cute responses with TTS speech.
 
 ---
 
 ## 📜 License
 
-MIT — do whatever you want.
-
----
-
-## 👤 Author
-
-**S1sTeam**
-
----
-
-## ⚠️ Notes
-
-- On rebuild (`npm run build`), make sure the previous Clapet process is closed — otherwise you'll get `EBUSY`. Use `taskkill /f /im Clapet.exe` on Windows.
-- macOS builds are unsigned — Gatekeeper will show a warning. `xattr -dr com.apple.quarantine /Applications/Clapet.app` to bypass.
-- Linux builds use `.AppImage` (portable) and `.deb` (Debian/Ubuntu). For other distros, use `--linux tar.gz` for a portable tarball.
+MIT License © 2026 Clapet Team.
