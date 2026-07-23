@@ -1,0 +1,57 @@
+:root {
+  --bg: #1d2021;
+  --bg-2: #222425;
+  --bg-3: #26292a;
+  --line: #2d3031;
+  --line-strong: #383b3c;
+  --fg: #fbf1c7;
+  --fg-dim: rgba(251, 241, 199, 0.6);
+  --fg-muted: rgba(251, 241, 199, 0.3);
+  --accent: #fe8019;
+  --orange: #fe8019;
+  --orange-dim: #d65d0e;
+  --success: #b8bb26;
+  --warning: #fabd2f;
+  --error: #fb4934;
+  --info: #8ec07c;
+  --toggle-checked: #fbf1c7;
+  --knob: #fbf1c7;
+  --knob-bg: #555859;
+  --white: #ffffff;
+  --radius: 10px;
+  --radius-xs: max(2px, calc(var(--radius) - 3px));
+  --radius-sm: max(3px, calc(var(--radius) - 2px));
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --fs: var(--font-size, 13px);
+  --fs-sm: calc(var(--fs) - 1px);
+  --fs-xs: calc(var(--fs) - 2px);
+  --fs-lg: calc(var(--fs) + 7px);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: var(--font-size, 13px);
+}
+
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hidden {
+  display: none !important;
+}

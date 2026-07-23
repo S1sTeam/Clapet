@@ -1,0 +1,597 @@
+﻿diff --git a/crates/cursor/src/lib.rs b/crates/cursor/src/lib.rs
+index b8090b2..69db313 100644
+--- a/crates/cursor/src/lib.rs
++++ b/crates/cursor/src/lib.rs
+@@ -24,3 +24,14 @@ pub fn get_global_cursor_pos() -> Option<CursorPos> {
+ pub fn get_global_cursor_pos() -> Option<CursorPos> {
+     None
+ }
++
++#[cfg(windows)]
++pub fn set_global_cursor_pos(x: i32, y: i32) {
++    use windows_sys::Win32::UI::WindowsAndMessaging::SetCursorPos;
++    unsafe {
++        SetCursorPos(x, y);
++    }
++}
++
++#[cfg(not(windows))]
++pub fn set_global_cursor_pos(_x: i32, _y: i32) {}
+diff --git a/src-tauri/src/main.rs b/src-tauri/src/main.rs
+index 60872cc..38c482b 100644
+--- a/src-tauri/src/main.rs
++++ b/src-tauri/src/main.rs
+@@ -184,6 +184,11 @@ fn get_relative_cursor_pos(window: WebviewWindow) -> Option<CursorMovePayload> {
+     })
+ }
+ 
++#[tauri::command]
++fn set_global_cursor_pos(x: i32, y: i32) {
++    cursor::set_global_cursor_pos(x, y);
++}
++
+ fn spawn_cursor_tracker(app: AppHandle, tracking_enabled: Arc<AtomicBool>) {
+     tauri::async_runtime::spawn(async move {
+         let mut interval = tokio::time::interval(Duration::from_millis(16));
+@@ -231,7 +236,8 @@ fn main() {
+             close_window,
+             set_always_on_top,
+             test_proxy,
+-            get_relative_cursor_pos
++            get_relative_cursor_pos,
++            set_global_cursor_pos
+         ])
+         .run(tauri::generate_context!())
+         .expect("error while running tauri application");
+diff --git a/src/components/pet/PetCanvas.tsx b/src/components/pet/PetCanvas.tsx
+index dd8ef88..9659d64 100644
+--- a/src/components/pet/PetCanvas.tsx
++++ b/src/components/pet/PetCanvas.tsx
+@@ -26,6 +26,8 @@ export const PetCanvas: React.FC<PetCanvasProps> = ({
+   const isSleep = petState === 'sleep';
+   const isAngry = petState === 'angry';
+   const isBurnt = petState === 'burnt';
++  const isDizzy = petState === 'dizzy';
++  const isFalling = petState === 'falling';
+ 
+   return (
+     <svg
+@@ -112,6 +114,22 @@ export const PetCanvas: React.FC<PetCanvasProps> = ({
+           <polyline points="82,147 88,139 94,147" stroke="#1A1A1A" strokeWidth="4" fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+           <polyline points="128,147 134,139 140,147" stroke="#1A1A1A" strokeWidth="4" fill="none" strokeLinecap="square" strokeLinejoin="miter" />
+         </g>
++
++        {/* Dizzy eyes (spirals using @) */}
++        <g id="dizzy-eyes" style={{ opacity: isDizzy ? 1 : 0 }}>
++          <text x="88" y="148" fontFamily="Arial" fontSize="24" fontWeight="bold" fill="#1A1A1A" textAnchor="middle">@</text>
++          <text x="134" y="148" fontFamily="Arial" fontSize="24" fontWeight="bold" fill="#1A1A1A" textAnchor="middle">@</text>
++          <path d="M 100 165 Q 110 170, 120 165" stroke="#1A1A1A" strokeWidth="2.5" fill="none" strokeLinecap="round" />
++        </g>
++
++        {/* Falling eyes (wide open) */}
++        <g id="falling-eyes" style={{ opacity: isFalling ? 1 : 0 }}>
++          <circle cx="88" cy="140" r="7" fill="#1A1A1A" />
++          <circle cx="134" cy="140" r="7" fill="#1A1A1A" />
++          <circle cx="88" cy="140" r="3" fill="#FFF" />
++          <circle cx="134" cy="140" r="3" fill="#FFF" />
++          <rect x="105" y="160" width="10" height="15" rx="5" fill="#1A1A1A" />
++        </g>
+       </g>
+ 
+       {/* Thinking eyes */}
+@@ -129,6 +147,13 @@ export const PetCanvas: React.FC<PetCanvasProps> = ({
+         <line x1="147" y1="135" x2="156" y2="128" stroke="#333" strokeWidth="2.5" strokeLinecap="square" />
+       </g>
+ 
++      {/* Orbiting stars for Dizzy state */}
++      <g id="dizzy-stars" style={{ opacity: isDizzy ? 1 : 0 }}>
++        <path className="orbit-star star-1" d="M 110 135 L 112.2 141.9 L 119.5 141.9 L 113.6 146.2 L 115.9 153.1 L 110 148.8 L 104.1 153.1 L 106.4 146.2 L 100.5 141.9 L 107.8 141.9 Z" fill="#FFEB3B" stroke="#FBC02D" strokeWidth="1" />
++        <path className="orbit-star star-2" d="M 110 135 L 112.2 141.9 L 119.5 141.9 L 113.6 146.2 L 115.9 153.1 L 110 148.8 L 104.1 153.1 L 106.4 146.2 L 100.5 141.9 L 107.8 141.9 Z" fill="#FFEB3B" stroke="#FBC02D" strokeWidth="1" />
++        <path className="orbit-star star-3" d="M 110 135 L 112.2 141.9 L 119.5 141.9 L 113.6 146.2 L 115.9 153.1 L 110 148.8 L 104.1 153.1 L 106.4 146.2 L 100.5 141.9 L 107.8 141.9 Z" fill="#FFEB3B" stroke="#FBC02D" strokeWidth="1" />
++      </g>
++
+       {/* Legs */}
+       <g id="legs" className="legs-part">
+         <rect id="leg-fl" x="58" y="185" width="14" height="22" rx="0" fill={isBurnt ? '#2B2B2B' : (isAngry ? '#E74C3C' : petColor)} />
+diff --git a/src/components/pet/PetMode.tsx b/src/components/pet/PetMode.tsx
+index 5772ff4..7608890 100644
+--- a/src/components/pet/PetMode.tsx
++++ b/src/components/pet/PetMode.tsx
+@@ -43,7 +43,7 @@ export const PetMode: React.FC<PetModeProps> = ({
+     triggerPawWave,
+   } = usePetAnimation('idle');
+ 
+-  const { isWandering } = useWander(settings.autoWalk, settings.walkSpeed, isDragging);
++  const { isWandering, startWanderStep } = useWander(settings.autoWalk, settings.walkSpeed, isDragging);
+   const { particles, spawnParticles } = useParticles(settings.showParticles);
+   const { floatingLetters } = useKeySpy(settings.floatLetters);
+ 
+@@ -61,6 +61,19 @@ export const PetMode: React.FC<PetModeProps> = ({
+   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+   const autoThinkTimerRef = useRef<any>(null);
+   const sleepIntervalRef = useRef<any>(null);
++  
++  const [isStealingCursor, setIsStealingCursor] = useState(false);
++  const stealTimerRef = useRef<any>(null);
++  const stealPosRef = useRef<{ dx: number, dy: number } | null>(null);
++  const cursorHoverTimeRef = useRef<number>(0);
++
++  // Initialize sleep trait if missing
++  useEffect(() => {
++    if (!stats.sleepTrait) {
++      const trait = Math.random() > 0.5 ? 'owl' : 'lark';
++      onUpdateStats({ ...stats, sleepTrait: trait });
++    }
++  }, [stats.sleepTrait, stats, onUpdateStats]);
+ 
+   // Sync wandering animation state
+   useEffect(() => {
+@@ -84,6 +97,68 @@ export const PetMode: React.FC<PetModeProps> = ({
+       const pos = await electronIpc.getRelativeCursorPos();
+       if (pos) {
+         updateCursorTarget(pos.clientX, pos.clientY);
++        
++        if (isStealingCursor) {
++          const winPos = await electronIpc.getWindowPosition();
++          if (winPos && stealPosRef.current) {
++            const petCenterX = winPos.width / 2;
++            const petCenterY = winPos.height / 2;
++
++            // Check if user is violently pulling the cursor away
++            const dx = (pos.clientX * fatScale) - petCenterX;
++            const dy = (pos.clientY * fatScale) - petCenterY;
++            const dist = Math.sqrt(dx * dx + dy * dy);
++
++            if (dist > 80) { // User jerked the mouse hard!
++              setIsStealingCursor(false);
++              if (stealTimerRef.current) clearTimeout(stealTimerRef.current);
++              setThoughtText('╨Ю╨╣! ╨С╨╛╨╗╤М╨╜╨╛ ╨╢╨╡, ╨╖╨░╨▒╨╕╤А╨░╨╣! ЁЯШ┐');
++              setThoughtVisible(true);
++              if (settings.ttsEnabled) ttsService.speak('╨Ю╨╣! ╨С╨╛╨╗╤М╨╜╨╛ ╨╢╨╡, ╨╖╨░╨▒╨╕╤А╨░╨╣.');
++              setTimeout(() => setThoughtVisible(false), 2000);
++              setPetState('idle');
++              return; // Stop stealing
++            }
++
++            const newX = winPos.x + stealPosRef.current.dx;
++            const newY = winPos.y + stealPosRef.current.dy;
++            electronIpc.setWindowPos(newX, newY);
++            // Pin the OS cursor to the pet's hands/center
++            electronIpc.setCursorPos(Math.round(newX + petCenterX), Math.round(newY + petCenterY));
++          }
++        } else {
++          // Check if cursor is over the pet window
++          const w = 320 * fatScale;
++          const h = 300 * fatScale;
++          if (pos.clientX >= 0 && pos.clientX <= w && pos.clientY >= 0 && pos.clientY <= h) {
++            cursorHoverTimeRef.current += 20;
++            if (cursorHoverTimeRef.current >= 3000 && petState === 'idle' && !isDragging && !menuVisible && !messageVisible) {
++              setIsStealingCursor(true);
++              cursorHoverTimeRef.current = 0;
++              setThoughtText('╨Ь╨Ю╨Б!');
++              setThoughtVisible(true);
++              setPetState('walking');
++              
++              if (settings.ttsEnabled) ttsService.speak('╨Ь╨╛╤С!');
++              
++              stealPosRef.current = { 
++                dx: (Math.random() - 0.5) * 20, 
++                dy: (Math.random() - 0.5) * 20 
++              };
++
++              stealTimerRef.current = setTimeout(() => {
++                setIsStealingCursor(false);
++                setThoughtText('╨д╤Г, ╨╖╨░╨▒╨╕╤А╨░╨╣...');
++                setThoughtVisible(true);
++                if (settings.ttsEnabled) ttsService.speak('╨д╤Г, ╨╖╨░╨▒╨╕╤А╨░╨╣.');
++                setTimeout(() => setThoughtVisible(false), 2000);
++                setPetState('idle');
++              }, 4000);
++            }
++          } else {
++            cursorHoverTimeRef.current = 0;
++          }
++        }
+       }
+     }, 20);
+ 
+@@ -95,8 +170,9 @@ export const PetMode: React.FC<PetModeProps> = ({
+       window.removeEventListener('mousemove', handleMouseMove);
+       clearInterval(interval);
+       unlisten();
++      if (stealTimerRef.current) clearTimeout(stealTimerRef.current);
+     };
+-  }, [updateCursorTarget]);
++  }, [updateCursorTarget, isStealingCursor, fatScale, petState, isDragging, menuVisible, messageVisible, settings.ttsEnabled]);
+ 
+   // Dynamically resize window when pet's scale changes
+   useEffect(() => {
+@@ -128,10 +204,47 @@ export const PetMode: React.FC<PetModeProps> = ({
+     };
+   }, [settings.autoThink, petState, menuVisible, messageVisible]);
+ 
++  // Sleep schedule check
++  useEffect(() => {
++    const checkSleep = () => {
++      if (!stats.sleepTrait || petState === 'angry' || petState === 'burnt' || isDragging || isWokenByShake || isStealingCursor) return;
++
++      const hour = new Date().getHours();
++      let shouldSleep = false;
++
++      if (stats.sleepTrait === 'owl' && hour >= 6 && hour < 14) {
++        shouldSleep = true;
++      } else if (stats.sleepTrait === 'lark' && (hour >= 22 || hour < 6)) {
++        shouldSleep = true;
++      }
++
++      if (shouldSleep && petState !== 'sleep') {
++        const typeStr = stats.sleepTrait === 'owl' ? '╤Б╨╛╨▓╨░' : '╨╢╨░╨▓╨╛╤А╨╛╨╜╨╛╨║';
++        setThoughtText(`╨п ${typeStr}, ╤Б╨╡╨╣╤З╨░╤Б ╨╝╨╛╨╡ ╨▓╤А╨╡╨╝╤П ╤Б╨┐╨░╤В╤М... ЁЯе▒`);
++        setThoughtVisible(true);
++        if (settings.ttsEnabled) ttsService.speak(`╨п ${typeStr}, ╤Е╨╛╤З╤Г ╤Б╨┐╨░╤В╤М.`);
++        
++        setTimeout(() => {
++          setThoughtVisible(false);
++          setPetState('sleep');
++          spawnParticles(['z', 'Z', 'z'], 5, '#8AB8FF', { spread: 40, riseDistance: 100 });
++        }, 3000);
++      }
++    };
++
++    sleepIntervalRef.current = setInterval(checkSleep, 60000);
++    checkSleep(); // initial check
++
++    return () => {
++      if (sleepIntervalRef.current) clearInterval(sleepIntervalRef.current);
++    };
++  }, [stats.sleepTrait, petState, isDragging, isWokenByShake, isStealingCursor, settings.ttsEnabled, spawnParticles, setPetState]);
+ 
+   const lastMousePosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+   const shakeVelocityRef = useRef<number>(0);
+   const angryTimerRef = useRef<any>(null);
++  const dizzyCounterRef = useRef<number>(0);
++  const fallIntervalRef = useRef<any>(null);
+ 
+   const ANGRY_CURSES = [
+     '╨в╨л ╨з╨Б, ╨б╨г╨Ъ╨Р, ╨Ю╨е╨г╨Х╨Ы?! ╨Ф╨Р╨Щ ╨Я╨Ю╨б╨Я╨Р╨в╨м!!! ЁЯдм',
+@@ -293,6 +406,50 @@ export const PetMode: React.FC<PetModeProps> = ({
+     }, 2000);
+   }, [stats, onUpdateStats, setPetState, spawnParticles, petState, isWokenByShake, settings.ttsEnabled, cookieSpamCount, fatScale]);
+ 
++  // Free fall logic
++  const startFreeFall = async (startY: number) => {
++    const screenInfo = await electronIpc.getScreenInfo();
++    const pos = await electronIpc.getWindowPosition();
++    if (!screenInfo || !pos) return;
++
++    setPetState('falling');
++    setThoughtText('╨Р╨Р╨Р╨Р╨Р╨Р╨Р!');
++    setThoughtVisible(true);
++    if (settings.ttsEnabled) ttsService.speak('╨Р╨Р╨Р╨Р╨Р╨Р╨Р╨Р╨Р╨Р╨Р╨Р!');
++
++    let currentY = pos.y;
++    const targetY = screenInfo.y + screenInfo.height - pos.height - 40;
++    let velocity = 5;
++    const gravity = 2;
++
++    if (fallIntervalRef.current) clearInterval(fallIntervalRef.current);
++
++    fallIntervalRef.current = setInterval(() => {
++      velocity += gravity;
++      currentY += velocity;
++
++      if (currentY >= targetY) {
++        currentY = targetY;
++        clearInterval(fallIntervalRef.current);
++        fallIntervalRef.current = null;
++
++        electronIpc.setWindowPos(pos.x, currentY);
++
++        setPetState('idle');
++        spawnParticles(['dust', 'pow!', 'bang'], 15, '#9E9E9E', { spread: 100, riseDistance: 80 });
++        setThoughtText('╨и╨╝╤П╨║...');
++        setThoughtVisible(true);
++        if (settings.ttsEnabled) ttsService.speak('╨и╨╝╤П╨║.');
++        
++        setTimeout(() => {
++          setThoughtVisible(false);
++        }, 2000);
++      } else {
++        electronIpc.setWindowPos(pos.x, currentY);
++      }
++    }, 20);
++  };
++
+   // Pointer Drag handling with pointer capture & safety fallbacks
+   const handlePointerDown = (e: React.PointerEvent) => {
+     if (e.button !== 0) return;
+@@ -330,6 +487,28 @@ export const PetMode: React.FC<PetModeProps> = ({
+         // Exponential smoothing of shake speed
+         shakeVelocityRef.current = shakeVelocityRef.current * 0.6 + speed * 0.4;
+ 
++        if (speed > 1800) {
++          dizzyCounterRef.current += 1;
++        } else if (speed < 500) {
++          dizzyCounterRef.current = 0;
++        }
++
++        if (dizzyCounterRef.current > 15 && (petState === 'idle' || petState === 'walking' || petState === 'happy')) {
++          setPetState('dizzy');
++          dizzyCounterRef.current = 0;
++          setThoughtText('╨Ю╤Б╤В╨░╨╜╨╛╨▓╨╕╤В╨╡ ╨Ч╨╡╨╝╨╗╤О, ╤П ╤Б╨╛╨╣╨┤╤Г... ЁЯдв');
++          setThoughtVisible(true);
++          spawnParticles(['dizzy', 'spiral', 'star'], 10, '#8BC34A', { spread: 60, riseDistance: 100 });
++          if (settings.ttsEnabled) {
++            ttsService.speak('╨Ю╤Б╤В╨░╨╜╨╛╨▓╨╕╤В╨╡ ╨Ч╨╡╨╝╨╗╤О, ╤П ╤Б╨╛╨╣╨┤╤Г...');
++          }
++          setTimeout(() => {
++            setPetState(prev => prev === 'dizzy' ? 'idle' : prev);
++            setThoughtVisible(false);
++          }, 4000);
++          return;
++        }
++
+         if (petState === 'burnt' && shakeVelocityRef.current > 1800) {
+           setPetState('idle');
+           setFatScale(1);
+@@ -374,8 +553,16 @@ export const PetMode: React.FC<PetModeProps> = ({
+         }
+       } catch {}
+       setIsDragging(false);
++      
++      const dropY = e.screenY;
++      
+       dragStartRef.current = null;
+       electronIpc.endDrag();
++
++      // Only fall if released at the very top of the screen (top 80 pixels)
++      if (dropY < 80 && petState !== 'dizzy') {
++        startFreeFall(dropY);
++      }
+     }
+   };
+ 
+@@ -396,6 +583,7 @@ export const PetMode: React.FC<PetModeProps> = ({
+       window.removeEventListener('pointerup', handleGlobalEnd);
+       window.removeEventListener('mouseup', handleGlobalEnd);
+       window.removeEventListener('blur', handleGlobalEnd);
++      if (fallIntervalRef.current) clearInterval(fallIntervalRef.current);
+     };
+   }, [isDragging, setIsDragging]);
+ 
+@@ -433,7 +621,9 @@ export const PetMode: React.FC<PetModeProps> = ({
+         setThoughtVisible(true);
+         return;
+       }
+-      setPetState(petState === 'walking' ? 'idle' : 'walking');
++      if (!isWandering) {
++        startWanderStep();
++      }
+     } else if (action === 'ask') {
+       setAskInputVisible(true);
+     } else if (action === 'settings') {
+@@ -481,7 +671,7 @@ export const PetMode: React.FC<PetModeProps> = ({
+       <div id="pet-mode-inner">
+         <div
+           id="pet-container"
+-          className={`state-${petState} ${isDragging ? 'dragging' : ''}`}
++          className={`state-${petState} ${isDragging && petState !== 'dizzy' ? 'dragging' : ''}`}
+           onPointerDown={handlePointerDown}
+           onContextMenu={handleContextMenu}
+           style={{
+diff --git a/src/components/pet/RadialMenu.tsx b/src/components/pet/RadialMenu.tsx
+index 10fe642..b7dbecb 100644
+--- a/src/components/pet/RadialMenu.tsx
++++ b/src/components/pet/RadialMenu.tsx
+@@ -11,8 +11,6 @@ interface RadialMenuProps {
+ }
+ 
+ export const RadialMenu: React.FC<RadialMenuProps> = ({ visible, canAskAI, onAction, feedCooldownText }) => {
+-  if (!visible) return null;
+-
+   const items: { action: RadialAction; icon: React.ReactNode; label: string; id?: string }[] = [
+     { action: 'sleep', icon: <SleepIcon size={18} />, label: '╨б╨┐╨░╤В╤М' },
+     { action: 'feed', icon: <FeedIcon size={18} />, label: '╨Ъ╨╛╤А╨╝╨╕╤В╤М', id: 'feed-btn' },
+@@ -36,7 +34,7 @@ export const RadialMenu: React.FC<RadialMenuProps> = ({ visible, canAskAI, onAct
+   return (
+     <div
+       id="radial-menu"
+-      className="radial-menu visible"
++      className={`radial-menu ${visible ? 'visible' : ''}`}
+       onPointerDown={e => e.stopPropagation()}
+       onMouseDown={e => e.stopPropagation()}
+     >
+@@ -60,8 +58,8 @@ export const RadialMenu: React.FC<RadialMenuProps> = ({ visible, canAskAI, onAct
+             title={item.label}
+             onClick={() => onAction(item.action)}
+             style={{
+-              left: `${left}px`,
+-              top: `${top}px`,
++              left: visible ? `${left}px` : `${cx}px`,
++              top: visible ? `${top}px` : `${cy}px`,
+               transitionDelay: `${idx * 0.035}s`,
+             }}
+           >
+diff --git a/src/hooks/useWander.ts b/src/hooks/useWander.ts
+index 3f8de65..73f0288 100644
+--- a/src/hooks/useWander.ts
++++ b/src/hooks/useWander.ts
+@@ -14,9 +14,10 @@ export function useWander(autoWalkEnabled: boolean, walkSpeed: number, isDraggin
+ 
+     if (!screenInfo || !pos) return;
+ 
+-    const dirX = Math.random() < 0.5 ? -1 : 1;
+-    const dirY = Math.random() < 0.5 ? -0.3 : 0.3;
+-    const distance = 40 + Math.random() * 80;
++    const angle = Math.random() * Math.PI * 2;
++    const dirX = Math.cos(angle);
++    const dirY = Math.sin(angle);
++    const distance = 80 + Math.random() * 150;
+     const duration = (distance / (30 * walkSpeed)) * 1000;
+ 
+     const startTime = Date.now();
+@@ -44,7 +45,7 @@ export function useWander(autoWalkEnabled: boolean, walkSpeed: number, isDraggin
+         curY = screenInfo.y + screenInfo.height - pos.height;
+       }
+ 
+-      electronIpc.setWindowPos(curX, curY);
++      electronIpc.setWindowPos(Math.round(curX), Math.round(curY));
+ 
+       if (progress >= 1) {
+         clearInterval(wanderStepRef.current);
+@@ -76,5 +77,6 @@ export function useWander(autoWalkEnabled: boolean, walkSpeed: number, isDraggin
+ 
+   return {
+     isWandering,
++    startWanderStep,
+   };
+ }
+diff --git a/src/services/electronIpc.ts b/src/services/electronIpc.ts
+index 9f5134a..be174ba 100644
+--- a/src/services/electronIpc.ts
++++ b/src/services/electronIpc.ts
+@@ -45,6 +45,10 @@ export const electronIpc = {
+     invoke('wander_move', { deltaX, deltaY }).catch(() => {});
+   },
+ 
++  setCursorPos: (x: number, y: number): void => {
++    invoke('set_global_cursor_pos', { x, y }).catch(() => {});
++  },
++
+   setWindowPos: async (x: number, y: number): Promise<void> => {
+     await invoke('set_window_pos', { x, y }).catch(() => {});
+   },
+diff --git a/src/styles/pet.css b/src/styles/pet.css
+index 8d851ed..6fef986 100644
+--- a/src/styles/pet.css
++++ b/src/styles/pet.css
+@@ -35,7 +35,7 @@
+ 
+ #thought-bubble {
+   position: absolute;
+-  top: -10px;
++  bottom: 145px;
+   left: 50%;
+   transform: translateX(-50%);
+   background: var(--fg);
+@@ -185,11 +185,24 @@
+   transform-origin: 110px 145px;
+ }
+ 
++.state-walking .legs-part,
++.state-walking .paw {
++  animation: walk-legs 0.35s ease-in-out infinite;
++  transform-origin: 110px 190px;
++}
++
+ @keyframes walk-body {
+   0%, 100% { transform: translateY(0); }
+   50% { transform: translateY(-3px); }
+ }
+ 
++@keyframes walk-legs {
++  0%, 100% { transform: translateX(0) rotate(0deg); }
++  25% { transform: translateX(-2px) rotate(-2deg); }
++  50% { transform: translateX(0) rotate(0deg); }
++  75% { transform: translateX(2px) rotate(2deg); }
++}
++
+ /* --- Angry / Rage state --- */
+ .state-angry #head,
+ .state-angry #legs,
+@@ -280,3 +293,51 @@
+ #thought-bubble:not(.hidden) {
+   opacity: 1;
+ }
++
++/* --- Dizzy state --- */
++.state-dizzy .head-part,
++.state-dizzy .body-part {
++  animation: wobble 0.6s ease-in-out infinite;
++  transform-origin: 110px 145px;
++}
++@keyframes wobble {
++  0%, 100% { transform: rotate(0deg) translateX(0); }
++  25% { transform: rotate(4deg) translateX(3px); }
++  75% { transform: rotate(-4deg) translateX(-3px); }
++}
++#dizzy-eyes text {
++  animation: spin-eye 1s linear infinite;
++}
++#dizzy-eyes text:nth-child(1) { transform-origin: 88px 140px; }
++#dizzy-eyes text:nth-child(2) { transform-origin: 134px 140px; }
++@keyframes spin-eye { 100% { transform: rotate(360deg); } }
++
++.state-dizzy .orbit-star {
++  transform-origin: 110px 145px;
++  animation: orbit 1.5s linear infinite;
++}
++.state-dizzy .star-1 { animation-delay: 0s; }
++.state-dizzy .star-2 { animation-delay: -0.5s; }
++.state-dizzy .star-3 { animation-delay: -1s; }
++
++@keyframes orbit {
++  0% { transform: rotate(0deg) translateY(-60px) rotate(0deg); }
++  100% { transform: rotate(360deg) translateY(-60px) rotate(-360deg); }
++}
++
++/* --- Falling state --- */
++.state-falling .paw {
++  transform: translateY(-30px) !important;
++}
++.state-falling .left-paw {
++  transform: translateY(-30px) rotate(-30deg) !important;
++}
++.state-falling .right-paw {
++  transform: translateY(-30px) rotate(30deg) !important;
++}
++.state-falling .head-part {
++  transform: translateY(-10px);
++}
++.state-falling .legs-part {
++  transform: translateY(-15px);
++}
+diff --git a/src/styles/radial-menu.css b/src/styles/radial-menu.css
+index 29ebcd3..02958b1 100644
+--- a/src/styles/radial-menu.css
++++ b/src/styles/radial-menu.css
+@@ -20,7 +20,7 @@
+   border-radius: 50%;
+   background: var(--bg-3);
+   cursor: pointer;
+-  pointer-events: auto;
++  pointer-events: none;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+@@ -28,10 +28,11 @@
+   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+   opacity: 0;
+   transform: translate(-50%, -50%) scale(0.4);
+-  transition: opacity 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s, border-color 0.15s;
++  transition: opacity 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s, border-color 0.15s;
+ }
+ #radial-menu.visible .radial-btn {
+   opacity: 1;
++  pointer-events: auto;
+   transform: translate(-50%, -50%) scale(1);
+ }
+ .radial-btn:hover {
+diff --git a/src/types/pet.ts b/src/types/pet.ts
+index 63278f3..30c0f94 100644
+--- a/src/types/pet.ts
++++ b/src/types/pet.ts
+@@ -1,4 +1,4 @@
+-export type PetState = 'idle' | 'thinking' | 'happy' | 'sleep' | 'walking' | 'angry' | 'burnt';
++export type PetState = 'idle' | 'thinking' | 'happy' | 'sleep' | 'walking' | 'angry' | 'burnt' | 'dizzy' | 'falling';
+ 
+ export interface PetStats {
+   level: number;
+@@ -6,6 +6,7 @@ export interface PetStats {
+   maxXp: number;
+   cookies: number;
+   lastFeed: number;
++  sleepTrait?: 'owl' | 'lark';
+ }
+ 
+ export interface ParticleItem {
