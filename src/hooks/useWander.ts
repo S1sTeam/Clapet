@@ -14,9 +14,10 @@ export function useWander(autoWalkEnabled: boolean, walkSpeed: number, isDraggin
 
     if (!screenInfo || !pos) return;
 
-    const dirX = Math.random() < 0.5 ? -1 : 1;
-    const dirY = Math.random() < 0.5 ? -0.3 : 0.3;
-    const distance = 40 + Math.random() * 80;
+    const angle = Math.random() * Math.PI * 2;
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle);
+    const distance = 80 + Math.random() * 150;
     const duration = (distance / (30 * walkSpeed)) * 1000;
 
     const startTime = Date.now();
@@ -44,7 +45,7 @@ export function useWander(autoWalkEnabled: boolean, walkSpeed: number, isDraggin
         curY = screenInfo.y + screenInfo.height - pos.height;
       }
 
-      electronIpc.setWindowPos(curX, curY);
+      electronIpc.setWindowPos(Math.round(curX), Math.round(curY));
 
       if (progress >= 1) {
         clearInterval(wanderStepRef.current);
@@ -76,5 +77,6 @@ export function useWander(autoWalkEnabled: boolean, walkSpeed: number, isDraggin
 
   return {
     isWandering,
+    startWanderStep,
   };
 }

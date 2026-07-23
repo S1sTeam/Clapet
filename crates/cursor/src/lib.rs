@@ -24,3 +24,14 @@ pub fn get_global_cursor_pos() -> Option<CursorPos> {
 pub fn get_global_cursor_pos() -> Option<CursorPos> {
     None
 }
+
+#[cfg(windows)]
+pub fn set_global_cursor_pos(x: i32, y: i32) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::SetCursorPos;
+    unsafe {
+        SetCursorPos(x, y);
+    }
+}
+
+#[cfg(not(windows))]
+pub fn set_global_cursor_pos(_x: i32, _y: i32) {}

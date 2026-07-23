@@ -43,7 +43,7 @@ export const PetMode: React.FC<PetModeProps> = ({
     triggerPawWave,
   } = usePetAnimation('idle');
 
-  const { isWandering } = useWander(settings.autoWalk, settings.walkSpeed, isDragging);
+  const { isWandering, startWanderStep } = useWander(settings.autoWalk, settings.walkSpeed, isDragging);
   const { particles, spawnParticles } = useParticles(settings.showParticles);
   const { floatingLetters } = useKeySpy(settings.floatLetters);
 
@@ -61,6 +61,19 @@ export const PetMode: React.FC<PetModeProps> = ({
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const autoThinkTimerRef = useRef<any>(null);
   const sleepIntervalRef = useRef<any>(null);
+  
+  const [isStealingCursor, setIsStealingCursor] = useState(false);
+  const stealTimerRef = useRef<any>(null);
+  const stealPosRef = useRef<{ dx: number, dy: number } | null>(null);
+  const cursorHoverTimeRef = useRef<number>(0);
+
+  // Initialize sleep trait if missing
+  useEffect(() => {
+    if (!stats.sleepTrait) {
+      const trait = Math.random() > 0.5 ? 'owl' : 'lark';
+      onUpdateStats({ ...stats, sleepTrait: trait });
+    }
+  }, [stats.sleepTrait, stats, onUpdateStats]);
 
   // Sync wandering animation state
   useEffect(() => {
@@ -84,6 +97,68 @@ export const PetMode: React.FC<PetModeProps> = ({
       const pos = await electronIpc.getRelativeCursorPos();
       if (pos) {
         updateCursorTarget(pos.clientX, pos.clientY);
+        
+        if (isStealingCursor) {
+          const winPos = await electronIpc.getWindowPosition();
+          if (winPos && stealPosRef.current) {
+            const petCenterX = winPos.width / 2;
+            const petCenterY = winPos.height / 2;
+
+            // Check if user is violently pulling the cursor away
+            const dx = (pos.clientX * fatScale) - petCenterX;
+            const dy = (pos.clientY * fatScale) - petCenterY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 80) { // User jerked the mouse hard!
+              setIsStealingCursor(false);
+              if (stealTimerRef.current) clearTimeout(stealTimerRef.current);
+              setThoughtText('Ой! Больно же, забирай! 😿');
+              setThoughtVisible(true);
+              if (settings.ttsEnabled) ttsService.speak('Ой! Больно же, забирай.');
+              setTimeout(() => setThoughtVisible(false), 2000);
+              setPetState('idle');
+              return; // Stop stealing
+            }
+
+            const newX = winPos.x + stealPosRef.current.dx;
+            const newY = winPos.y + stealPosRef.current.dy;
+            electronIpc.setWindowPos(newX, newY);
+            // Pin the OS cursor to the pet's hands/center
+            electronIpc.setCursorPos(Math.round(newX + petCenterX), Math.round(newY + petCenterY));
+          }
+        } else {
+          // Check if cursor is over the pet window
+          const w = 320 * fatScale;
+          const h = 300 * fatScale;
+          if (pos.clientX >= 0 && pos.clientX <= w && pos.clientY >= 0 && pos.clientY <= h) {
+            cursorHoverTimeRef.current += 20;
+            if (cursorHoverTimeRef.current >= 3000 && petState === 'idle' && !isDragging && !menuVisible && !messageVisible) {
+              setIsStealingCursor(true);
+              cursorHoverTimeRef.current = 0;
+              setThoughtText('МОЁ!');
+              setThoughtVisible(true);
+              setPetState('walking');
+              
+              if (settings.ttsEnabled) ttsService.speak('Моё!');
+              
+              stealPosRef.current = { 
+                dx: (Math.random() - 0.5) * 20, 
+                dy: (Math.random() - 0.5) * 20 
+              };
+
+              stealTimerRef.current = setTimeout(() => {
+                setIsStealingCursor(false);
+                setThoughtText('Фу, забирай...');
+                setThoughtVisible(true);
+                if (settings.ttsEnabled) ttsService.speak('Фу, забирай.');
+                setTimeout(() => setThoughtVisible(false), 2000);
+                setPetState('idle');
+              }, 4000);
+            }
+          } else {
+            cursorHoverTimeRef.current = 0;
+          }
+        }
       }
     }, 20);
 
@@ -95,8 +170,9 @@ export const PetMode: React.FC<PetModeProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       clearInterval(interval);
       unlisten();
+      if (stealTimerRef.current) clearTimeout(stealTimerRef.current);
     };
-  }, [updateCursorTarget]);
+  }, [updateCursorTarget, isStealingCursor, fatScale, petState, isDragging, menuVisible, messageVisible, settings.ttsEnabled]);
 
   // Dynamically resize window when pet's scale changes
   useEffect(() => {
@@ -128,10 +204,47 @@ export const PetMode: React.FC<PetModeProps> = ({
     };
   }, [settings.autoThink, petState, menuVisible, messageVisible]);
 
+  // Sleep schedule check
+  useEffect(() => {
+    const checkSleep = () => {
+      if (!stats.sleepTrait || petState === 'angry' || petState === 'burnt' || isDragging || isWokenByShake || isStealingCursor) return;
+
+      const hour = new Date().getHours();
+      let shouldSleep = false;
+
+      if (stats.sleepTrait === 'owl' && hour >= 6 && hour < 14) {
+        shouldSleep = true;
+      } else if (stats.sleepTrait === 'lark' && (hour >= 22 || hour < 6)) {
+        shouldSleep = true;
+      }
+
+      if (shouldSleep && petState !== 'sleep') {
+        const typeStr = stats.sleepTrait === 'owl' ? 'сова' : 'жаворонок';
+        setThoughtText(`Я ${typeStr}, сейчас мое время спать... 🥱`);
+        setThoughtVisible(true);
+        if (settings.ttsEnabled) ttsService.speak(`Я ${typeStr}, хочу спать.`);
+        
+        setTimeout(() => {
+          setThoughtVisible(false);
+          setPetState('sleep');
+          spawnParticles(['z', 'Z', 'z'], 5, '#8AB8FF', { spread: 40, riseDistance: 100 });
+        }, 3000);
+      }
+    };
+
+    sleepIntervalRef.current = setInterval(checkSleep, 60000);
+    checkSleep(); // initial check
+
+    return () => {
+      if (sleepIntervalRef.current) clearInterval(sleepIntervalRef.current);
+    };
+  }, [stats.sleepTrait, petState, isDragging, isWokenByShake, isStealingCursor, settings.ttsEnabled, spawnParticles, setPetState]);
 
   const lastMousePosRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const shakeVelocityRef = useRef<number>(0);
   const angryTimerRef = useRef<any>(null);
+  const dizzyCounterRef = useRef<number>(0);
+  const fallIntervalRef = useRef<any>(null);
 
   const ANGRY_CURSES = [
     'ТЫ ЧЁ, СУКА, ОХУЕЛ?! ДАЙ ПОСПАТЬ!!! 🤬',
@@ -293,6 +406,50 @@ export const PetMode: React.FC<PetModeProps> = ({
     }, 2000);
   }, [stats, onUpdateStats, setPetState, spawnParticles, petState, isWokenByShake, settings.ttsEnabled, cookieSpamCount, fatScale]);
 
+  // Free fall logic
+  const startFreeFall = async (startY: number) => {
+    const screenInfo = await electronIpc.getScreenInfo();
+    const pos = await electronIpc.getWindowPosition();
+    if (!screenInfo || !pos) return;
+
+    setPetState('falling');
+    setThoughtText('ААААААА!');
+    setThoughtVisible(true);
+    if (settings.ttsEnabled) ttsService.speak('АААААААААААА!');
+
+    let currentY = pos.y;
+    const targetY = screenInfo.y + screenInfo.height - pos.height - 40;
+    let velocity = 5;
+    const gravity = 2;
+
+    if (fallIntervalRef.current) clearInterval(fallIntervalRef.current);
+
+    fallIntervalRef.current = setInterval(() => {
+      velocity += gravity;
+      currentY += velocity;
+
+      if (currentY >= targetY) {
+        currentY = targetY;
+        clearInterval(fallIntervalRef.current);
+        fallIntervalRef.current = null;
+
+        electronIpc.setWindowPos(pos.x, currentY);
+
+        setPetState('idle');
+        spawnParticles(['dust', 'pow!', 'bang'], 15, '#9E9E9E', { spread: 100, riseDistance: 80 });
+        setThoughtText('Шмяк...');
+        setThoughtVisible(true);
+        if (settings.ttsEnabled) ttsService.speak('Шмяк.');
+        
+        setTimeout(() => {
+          setThoughtVisible(false);
+        }, 2000);
+      } else {
+        electronIpc.setWindowPos(pos.x, currentY);
+      }
+    }, 20);
+  };
+
   // Pointer Drag handling with pointer capture & safety fallbacks
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -329,6 +486,28 @@ export const PetMode: React.FC<PetModeProps> = ({
 
         // Exponential smoothing of shake speed
         shakeVelocityRef.current = shakeVelocityRef.current * 0.6 + speed * 0.4;
+
+        if (speed > 1800) {
+          dizzyCounterRef.current += 1;
+        } else if (speed < 500) {
+          dizzyCounterRef.current = 0;
+        }
+
+        if (dizzyCounterRef.current > 15 && (petState === 'idle' || petState === 'walking' || petState === 'happy')) {
+          setPetState('dizzy');
+          dizzyCounterRef.current = 0;
+          setThoughtText('Остановите Землю, я сойду... 🤢');
+          setThoughtVisible(true);
+          spawnParticles(['dizzy', 'spiral', 'star'], 10, '#8BC34A', { spread: 60, riseDistance: 100 });
+          if (settings.ttsEnabled) {
+            ttsService.speak('Остановите Землю, я сойду...');
+          }
+          setTimeout(() => {
+            setPetState(prev => prev === 'dizzy' ? 'idle' : prev);
+            setThoughtVisible(false);
+          }, 4000);
+          return;
+        }
 
         if (petState === 'burnt' && shakeVelocityRef.current > 1800) {
           setPetState('idle');
@@ -374,8 +553,16 @@ export const PetMode: React.FC<PetModeProps> = ({
         }
       } catch {}
       setIsDragging(false);
+      
+      const dropY = e.screenY;
+      
       dragStartRef.current = null;
       electronIpc.endDrag();
+
+      // Only fall if released at the very top of the screen (top 80 pixels)
+      if (dropY < 80 && petState !== 'dizzy') {
+        startFreeFall(dropY);
+      }
     }
   };
 
@@ -396,6 +583,7 @@ export const PetMode: React.FC<PetModeProps> = ({
       window.removeEventListener('pointerup', handleGlobalEnd);
       window.removeEventListener('mouseup', handleGlobalEnd);
       window.removeEventListener('blur', handleGlobalEnd);
+      if (fallIntervalRef.current) clearInterval(fallIntervalRef.current);
     };
   }, [isDragging, setIsDragging]);
 
@@ -433,7 +621,9 @@ export const PetMode: React.FC<PetModeProps> = ({
         setThoughtVisible(true);
         return;
       }
-      setPetState(petState === 'walking' ? 'idle' : 'walking');
+      if (!isWandering) {
+        startWanderStep();
+      }
     } else if (action === 'ask') {
       setAskInputVisible(true);
     } else if (action === 'settings') {
@@ -481,7 +671,7 @@ export const PetMode: React.FC<PetModeProps> = ({
       <div id="pet-mode-inner">
         <div
           id="pet-container"
-          className={`state-${petState} ${isDragging ? 'dragging' : ''}`}
+          className={`state-${petState} ${isDragging && petState !== 'dizzy' ? 'dragging' : ''}`}
           onPointerDown={handlePointerDown}
           onContextMenu={handleContextMenu}
           style={{

@@ -1,4 +1,4 @@
-export type PetState = 'idle' | 'thinking' | 'happy' | 'sleep' | 'walking' | 'angry' | 'burnt';
+export type PetState = 'idle' | 'thinking' | 'happy' | 'sleep' | 'walking' | 'angry' | 'burnt' | 'dizzy' | 'falling';
 
 export interface PetStats {
   level: number;
@@ -6,6 +6,7 @@ export interface PetStats {
   maxXp: number;
   cookies: number;
   lastFeed: number;
+  sleepTrait?: 'owl' | 'lark';
 }
 
 export interface ParticleItem {

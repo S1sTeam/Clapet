@@ -45,6 +45,10 @@ export const electronIpc = {
     invoke('wander_move', { deltaX, deltaY }).catch(() => {});
   },
 
+  setCursorPos: (x: number, y: number): void => {
+    invoke('set_global_cursor_pos', { x, y }).catch(() => {});
+  },
+
   setWindowPos: async (x: number, y: number): Promise<void> => {
     await invoke('set_window_pos', { x, y }).catch(() => {});
   },

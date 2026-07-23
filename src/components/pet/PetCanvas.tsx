@@ -26,6 +26,8 @@ export const PetCanvas: React.FC<PetCanvasProps> = ({
   const isSleep = petState === 'sleep';
   const isAngry = petState === 'angry';
   const isBurnt = petState === 'burnt';
+  const isDizzy = petState === 'dizzy';
+  const isFalling = petState === 'falling';
 
   return (
     <svg
@@ -112,6 +114,22 @@ export const PetCanvas: React.FC<PetCanvasProps> = ({
           <polyline points="82,147 88,139 94,147" stroke="#1A1A1A" strokeWidth="4" fill="none" strokeLinecap="square" strokeLinejoin="miter" />
           <polyline points="128,147 134,139 140,147" stroke="#1A1A1A" strokeWidth="4" fill="none" strokeLinecap="square" strokeLinejoin="miter" />
         </g>
+
+        {/* Dizzy eyes (spirals using @) */}
+        <g id="dizzy-eyes" style={{ opacity: isDizzy ? 1 : 0 }}>
+          <text x="88" y="148" fontFamily="Arial" fontSize="24" fontWeight="bold" fill="#1A1A1A" textAnchor="middle">@</text>
+          <text x="134" y="148" fontFamily="Arial" fontSize="24" fontWeight="bold" fill="#1A1A1A" textAnchor="middle">@</text>
+          <path d="M 100 165 Q 110 170, 120 165" stroke="#1A1A1A" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        </g>
+
+        {/* Falling eyes (wide open) */}
+        <g id="falling-eyes" style={{ opacity: isFalling ? 1 : 0 }}>
+          <circle cx="88" cy="140" r="7" fill="#1A1A1A" />
+          <circle cx="134" cy="140" r="7" fill="#1A1A1A" />
+          <circle cx="88" cy="140" r="3" fill="#FFF" />
+          <circle cx="134" cy="140" r="3" fill="#FFF" />
+          <rect x="105" y="160" width="10" height="15" rx="5" fill="#1A1A1A" />
+        </g>
       </g>
 
       {/* Thinking eyes */}
@@ -127,6 +145,13 @@ export const PetCanvas: React.FC<PetCanvasProps> = ({
         <path d="M 101 139 Q 111 136, 121 139" stroke="#333" strokeWidth="2.5" fill="none" strokeLinecap="square" />
         <line x1="75" y1="135" x2="66" y2="128" stroke="#333" strokeWidth="2.5" strokeLinecap="square" />
         <line x1="147" y1="135" x2="156" y2="128" stroke="#333" strokeWidth="2.5" strokeLinecap="square" />
+      </g>
+
+      {/* Orbiting stars for Dizzy state */}
+      <g id="dizzy-stars" style={{ opacity: isDizzy ? 1 : 0 }}>
+        <path className="orbit-star star-1" d="M 110 135 L 112.2 141.9 L 119.5 141.9 L 113.6 146.2 L 115.9 153.1 L 110 148.8 L 104.1 153.1 L 106.4 146.2 L 100.5 141.9 L 107.8 141.9 Z" fill="#FFEB3B" stroke="#FBC02D" strokeWidth="1" />
+        <path className="orbit-star star-2" d="M 110 135 L 112.2 141.9 L 119.5 141.9 L 113.6 146.2 L 115.9 153.1 L 110 148.8 L 104.1 153.1 L 106.4 146.2 L 100.5 141.9 L 107.8 141.9 Z" fill="#FFEB3B" stroke="#FBC02D" strokeWidth="1" />
+        <path className="orbit-star star-3" d="M 110 135 L 112.2 141.9 L 119.5 141.9 L 113.6 146.2 L 115.9 153.1 L 110 148.8 L 104.1 153.1 L 106.4 146.2 L 100.5 141.9 L 107.8 141.9 Z" fill="#FFEB3B" stroke="#FBC02D" strokeWidth="1" />
       </g>
 
       {/* Legs */}

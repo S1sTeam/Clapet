@@ -184,6 +184,11 @@ fn get_relative_cursor_pos(window: WebviewWindow) -> Option<CursorMovePayload> {
     })
 }
 
+#[tauri::command]
+fn set_global_cursor_pos(x: i32, y: i32) {
+    cursor::set_global_cursor_pos(x, y);
+}
+
 fn spawn_cursor_tracker(app: AppHandle, tracking_enabled: Arc<AtomicBool>) {
     tauri::async_runtime::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(16));
@@ -231,7 +236,8 @@ fn main() {
             close_window,
             set_always_on_top,
             test_proxy,
-            get_relative_cursor_pos
+            get_relative_cursor_pos,
+            set_global_cursor_pos
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

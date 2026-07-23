@@ -11,8 +11,6 @@ interface RadialMenuProps {
 }
 
 export const RadialMenu: React.FC<RadialMenuProps> = ({ visible, canAskAI, onAction, feedCooldownText }) => {
-  if (!visible) return null;
-
   const items: { action: RadialAction; icon: React.ReactNode; label: string; id?: string }[] = [
     { action: 'sleep', icon: <SleepIcon size={18} />, label: 'Спать' },
     { action: 'feed', icon: <FeedIcon size={18} />, label: 'Кормить', id: 'feed-btn' },
@@ -36,7 +34,7 @@ export const RadialMenu: React.FC<RadialMenuProps> = ({ visible, canAskAI, onAct
   return (
     <div
       id="radial-menu"
-      className="radial-menu visible"
+      className={`radial-menu ${visible ? 'visible' : ''}`}
       onPointerDown={e => e.stopPropagation()}
       onMouseDown={e => e.stopPropagation()}
     >
@@ -60,8 +58,8 @@ export const RadialMenu: React.FC<RadialMenuProps> = ({ visible, canAskAI, onAct
             title={item.label}
             onClick={() => onAction(item.action)}
             style={{
-              left: `${left}px`,
-              top: `${top}px`,
+              left: visible ? `${left}px` : `${cx}px`,
+              top: visible ? `${top}px` : `${cy}px`,
               transitionDelay: `${idx * 0.035}s`,
             }}
           >
