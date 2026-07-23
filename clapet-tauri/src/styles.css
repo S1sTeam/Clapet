@@ -1,34 +1,53 @@
-<<<<<<< HEAD
-@import './styles/variables.css';
-@import './styles/splash.css';
-@import './styles/pet.css';
-@import './styles/radial-menu.css';
-@import './styles/effects.css';
-@import './styles/ai-settings.css';
-@import './styles/message-window.css';
-@import './styles/launcher.css';
-=======
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html {
-  font-size: var(--font-size, 13px);
+*:focus, *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-body {
-  width: 100%;
-  height: 100%;
+html {
+  font-size: var(--font-size, 13px);
+  background: transparent !important;
+}
+
+html, body, #root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
-  background: transparent;
+  background: transparent !important;
   user-select: none;
   -webkit-user-select: none;
   cursor: default;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  background: transparent !important;
+}
+
+#launcher {
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 48px);
+  height: calc(100% - 48px);
+  margin: 24px;
+  background: var(--bg, #1d2021);
+  color: var(--fg);
+  font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-size: var(--font-size, 13px);
+  overflow: hidden;
+  line-height: 1.55;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* ── Splash / Loader ── */
@@ -165,35 +184,61 @@ body {
   display: none !important;
 }
 
-#thought-bubble {
+#thought-bubble, .side-bubble {
   position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--fg);
-  padding: 6px 12px;
+  top: 20px;
+  background: rgba(30, 30, 30, 0.96);
+  color: #fbf1c7;
+  padding: 10px 14px;
   font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
-  font-size: 11px;
-  color: var(--bg);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: 14px;
+  border: 1px solid rgba(254, 128, 25, 0.5);
+  min-width: 140px;
+  max-width: 300px;
+  max-height: 260px;
+  overflow-y: auto;
+  word-break: break-word;
+  z-index: 40;
+  animation: thought-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  pointer-events: auto;
 }
 
-#thought-bubble::after {
+#thought-bubble.side-right, .side-bubble.side-right {
+  left: 192px;
+}
+#thought-bubble.side-right::before, .side-bubble.side-right::before {
   content: '';
   position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 10px;
-  background: var(--fg);
-  clip-path: polygon(50% 100%, 0 0, 100% 0);
+  left: -7px;
+  top: 14px;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 7px solid rgba(254, 128, 25, 0.7);
+}
+
+#thought-bubble.side-left, .side-bubble.side-left {
+  right: 192px;
+}
+#thought-bubble.side-left::before, .side-bubble.side-left::before {
+  content: '';
+  position: absolute;
+  right: -7px;
+  top: 14px;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid rgba(254, 128, 25, 0.7);
+}
+
+@keyframes thought-pop {
+  0% { opacity: 0; transform: scale(0.8) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 #thought-bubble.hidden {
@@ -251,16 +296,16 @@ body {
 }
 
 .state-happy .body-part {
-  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite, bounce 0.5s ease-in-out 3;
+  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite;
 }
 .state-happy .head-part {
-  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite, bounce 0.5s ease-in-out 3;
+  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite;
 }
 .state-happy .legs-part {
-  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite, bounce 0.5s ease-in-out 3;
+  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite;
 }
 .state-happy .paw {
-  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite, bounce 0.5s ease-in-out 3;
+  animation: breathe var(--breathe-speed, 3s) ease-in-out infinite;
 }
 
 @keyframes bounce {
@@ -1662,4 +1707,3 @@ body {
   opacity: 1;
 }
 
->>>>>>> 2710637 (Release v1.0.0: Tauri migration with ElevenLabs TTS, i18n, multi-platform GitHub Actions)
