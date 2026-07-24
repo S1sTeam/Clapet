@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: ./clapet-tauri
-          tagName: ${{ github.ref_name }}
+          tagName: v1.0.0-b2
           releaseName: 'v1.0.0 (BUILD #2)'
           releaseDraft: false
           prerelease: false
