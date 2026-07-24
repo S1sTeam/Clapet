@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-export type PetState = "idle" | "thinking" | "happy" | "sleep" | "walking";
+export type PetState = "idle" | "thinking" | "happy" | "sleep" | "walking" | "annoyed" | "dancing" | "nihma";
 
 const PROVIDER_ICONS: Record<string, string> = {
   openai: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a6 6 0 0 0-.516-4.91 6.05 6.05 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.99 5.99 0 0 0-4 2.9 6.05 6.05 0 0 0 .744 7.097 5.98 5.98 0 0 0 .51 4.911 6.05 6.05 0 0 0 6.515 2.9A6.07 6.07 0 0 0 13.26 24a6.06 6.06 0 0 0 5.772-4.206 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.747-7.073M13.26 22.43a4.48 4.48 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.8.8 0 0 0 .392-.681v-6.737l2.02 1.168a.07.07 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494M3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.77.77 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646M2.34 7.896a4.5 4.5 0 0 1 2.366-1.973V11.6a.77.77 0 0 0 .388.677l5.815 3.354-2.02 1.168a.08.08 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855-5.833-3.387L15.119 7.2a.08.08 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667m2.01-3.023-.141-.085-4.774-2.782a.78.78 0 0 0-.785 0L9.409 9.23V6.897a.07.07 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.8.8 0 0 0-.393.681zm1.097-2.365 2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5Z"/></svg>',
@@ -74,8 +74,11 @@ const TRANSLATIONS = {
     elevenLabsKey: "ElevenLabs API Key",
     elevenLabsVoice: "ElevenLabs Voice ID",
     enterKeyMsg: "Please enter ElevenLabs API Key in AI settings!",
-    particles: "Particles Effect",
-    letters: "Key Press Floating Letters",
+    particles: "Particle Effects",
+    letters: "Typing Letters Effect",
+    audioDance: "React & Dance to PC Audio/Music",
+    systemPromptLabel: "Custom System Instruction (System Prompt)",
+    systemPromptPlaceholder: "e.g. You are Clapet, a cute, obedient desktop pet. Obey your owner...",
     autoLaunch: "Launch on Windows Startup",
     provider: "Provider",
     verifyAndSave: "Verify & Fetch Models",
@@ -143,6 +146,9 @@ const TRANSLATIONS = {
     enterKeyMsg: "Пожалуйста, введите API ключ ElevenLabs в настройках AI!",
     particles: "Эффект частиц",
     letters: "Вылет букв при печати",
+    audioDance: "Реакция и танец под музыку на ПК",
+    systemPromptLabel: "Системная инструкция ИИ (System Prompt)",
+    systemPromptPlaceholder: "например: Ты Клапет, послушный весёлый питомец. Слушайся своего хозяина...",
     autoLaunch: "Автозапуск при старте Windows",
     provider: "Провайдер",
     verifyAndSave: "Проверить и загрузить модели",
@@ -194,6 +200,12 @@ export const App: React.FC = () => {
 
   // Pet state & animations
   const [petState, setPetState] = useState<PetState>("idle");
+  // Rich animation sub-variants
+  const [idleVariant, setIdleVariant] = useState<"breathe" | "bounce" | "look" | "wiggle" | "yawn">("breathe");
+  const [sleepVariant, setSleepVariant] = useState<"side" | "curl" | "flat">("side");
+  const [chewVariant, setChewVariant] = useState<"crunch" | "wiggle" | "hop">("crunch");
+  const [walkVariant, setWalkVariant] = useState<"trot" | "sneak" | "hop">("trot");
+
   const [isDragging, setIsDragging] = useState(false);
   const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
   const [isBlinking, setIsBlinking] = useState(false);
@@ -201,15 +213,37 @@ export const App: React.FC = () => {
   const [chewing, setChewing] = useState(false);
   const [chewOpen, setChewOpen] = useState(false);
 
-  // Radial menu & Ask
+  const [isAsking, setIsAsking] = useState(false);
   const [showRadialMenu, setShowRadialMenu] = useState(false);
   const [showAskInput, setShowAskInput] = useState(false);
+  const askInputTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetAskInputTimer = () => {
+    if (askInputTimerRef.current) clearTimeout(askInputTimerRef.current);
+    if (showAskInput && !isAsking) {
+      askInputTimerRef.current = setTimeout(() => {
+        setShowAskInput(false);
+        setAskQuery("");
+      }, 7000);
+    }
+  };
+
+  useEffect(() => {
+    if (showAskInput && !isAsking) {
+      resetAskInputTimer();
+    } else {
+      if (askInputTimerRef.current) clearTimeout(askInputTimerRef.current);
+    }
+    return () => {
+      if (askInputTimerRef.current) clearTimeout(askInputTimerRef.current);
+    };
+  }, [showAskInput, isAsking]);
   const [askQuery, setAskQuery] = useState("");
   const [thoughtBubbleText, setThoughtBubbleText] = useState<string | null>(null);
   const [feedTimerTick, setFeedTimerTick] = useState(0);
 
   // Floating Particles & Letters
-  const [particles, setParticles] = useState<{ id: number; char: string; color: string; left: number; size: number }[]>([]);
+  const [particles, setParticles] = useState<{ id: number; icon: string; color: string; left: number; size: number }[]>([]);
   const [floatLetters, setFloatLetters] = useState<{ id: number; char: string; left: number }[]>([]);
 
   // Stats & XP
@@ -238,6 +272,14 @@ export const App: React.FC = () => {
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [particlesEnabled, setParticlesEnabled] = useState(true);
   const [floatLettersEnabled, setFloatLettersEnabled] = useState(true);
+  const [audioDanceEnabled, setAudioDanceEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("audio_dance_enabled");
+      return saved !== null ? saved === "true" : true;
+    } catch {
+      return true;
+    }
+  });
   const [autoLaunch, setAutoLaunch] = useState(false);
 
   // AI Settings
@@ -245,6 +287,13 @@ export const App: React.FC = () => {
   const [apiKey, setApiKey] = useState("");
   const [showApiKeyText, setShowApiKeyText] = useState(false);
   const [customUrl, setCustomUrl] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState<string>(() => {
+    try {
+      return localStorage.getItem("system_prompt") || "";
+    } catch {
+      return "";
+    }
+  });
   const [selectedModel, setSelectedModel] = useState("");
   const [verifiedModel, setVerifiedModel] = useState<string>("");
   const [modelSearch, setModelSearch] = useState("");
@@ -263,6 +312,48 @@ export const App: React.FC = () => {
   const [apiStatus, setApiStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [apiErrorMsg, setApiErrorMsg] = useState("");
 
+  // ── Dynamic Random Animation Variant Switcher (Every 25 seconds) ──
+  useEffect(() => {
+    if (petState !== "idle") return;
+    const interval = setInterval(() => {
+      const vars: ("bounce" | "look" | "wiggle" | "yawn")[] = ["bounce", "look", "wiggle", "yawn"];
+      const nextVar = vars[Math.floor(Math.random() * vars.length)];
+      setIdleVariant(nextVar);
+      // Reset back to standard breathing after 3.5 seconds of showing the action
+      setTimeout(() => {
+        setIdleVariant("breathe");
+      }, 3500);
+    }, 25000);
+    return () => clearInterval(interval);
+  }, [petState]);
+
+  useEffect(() => {
+    if (petState === "sleep") {
+      const sleepVars: ("side" | "curl" | "flat")[] = ["side", "curl", "flat"];
+      setSleepVariant(sleepVars[Math.floor(Math.random() * sleepVars.length)]);
+    } else if (petState === "walking") {
+      const walkVars: ("trot" | "sneak" | "hop")[] = ["trot", "sneak", "hop"];
+      setWalkVariant(walkVars[Math.floor(Math.random() * walkVars.length)]);
+    }
+  }, [petState]);
+
+  useEffect(() => {
+    if (petState !== "thinking") return;
+    const interval = setInterval(() => {
+      spawnParticles(["sparkle", "star"], "#fe8019");
+    }, 700);
+    return () => clearInterval(interval);
+  }, [petState]);
+
+  // Fail-safe auto-reset for happy state back to idle after 1.4s
+  useEffect(() => {
+    if (petState === "happy" && !chewing && !isAsking) {
+      const timer = setTimeout(() => {
+        setPetState("idle");
+      }, 1400);
+      return () => clearTimeout(timer);
+    }
+  }, [petState, chewing, isAsking]);
   const [showCookieFly, setShowCookieFly] = useState(false);
   const [floatXpText, setFloatXpText] = useState<string | null>(null);
 
@@ -321,16 +412,16 @@ export const App: React.FC = () => {
     if (storageKey) localStorage.setItem(storageKey, nextVal.toString());
   };
 
-  // ── Smooth Eye Movement following global desktop mouse ──
+  // ── Ultra-smooth 60 FPS Eye Tracking with LERP Interpolation ──
   useEffect(() => {
     if (view !== "pet" || petState === "sleep" || petState === "thinking") return;
-    let currentX = eyeOffset.x;
-    let currentY = eyeOffset.y;
     let targetX = 0;
     let targetY = 0;
+    let currentX = eyeOffset.x;
+    let currentY = eyeOffset.y;
     let animId: number;
 
-    const updateSmooth = async () => {
+    const eyeInterval = setInterval(async () => {
       try {
         const res: any = await invoke("get_cursor_relative");
         if (res) {
@@ -343,37 +434,33 @@ export const App: React.FC = () => {
             dx /= dist;
             dy /= dist;
           }
-          targetX = dx * 12;
-          targetY = dy * 24;
+          let tx = dx * 12;
+          let ty = dy * 22;
 
-          // Clamp eye movement to body bounds like main.js
           const ew = 30, eh = 20;
           const leftBaseX = 73, leftBaseY = 135;
-          const rightBaseX = 119, rightBaseY = 135;
-
-          let lx = leftBaseX + targetX;
-          let ly = leftBaseY + targetY;
-          let rx = rightBaseX + targetX;
-          let ry = rightBaseY + targetY;
-
-          lx = Math.max(45, Math.min(175 - ew, lx));
-          ly = Math.max(100, Math.min(190 - eh, ly));
-          rx = Math.max(45 + (rightBaseX - leftBaseX), Math.min(175 - ew, rx));
-          ry = Math.max(100, Math.min(190 - eh, ry));
-
+          let lx = Math.max(45, Math.min(175 - ew, leftBaseX + tx));
+          let ly = Math.max(100, Math.min(190 - eh, leftBaseY + ty));
           targetX = lx - leftBaseX;
           targetY = ly - leftBaseY;
         }
       } catch (e) {}
+    }, 25);
 
-      currentX += (targetX - currentX) * 0.15;
-      currentY += (targetY - currentY) * 0.15;
-      setEyeOffset({ x: currentX, y: currentY });
-      animId = requestAnimationFrame(updateSmooth);
+    const renderLoop = () => {
+      const diffX = targetX - currentX;
+      const diffY = targetY - currentY;
+      if (Math.abs(diffX) > 0.05 || Math.abs(diffY) > 0.05) {
+        currentX += diffX * 0.22;
+        currentY += diffY * 0.22;
+        setEyeOffset({ x: currentX, y: currentY });
+      }
+      animId = requestAnimationFrame(renderLoop);
     };
+    animId = requestAnimationFrame(renderLoop);
 
-    animId = requestAnimationFrame(updateSmooth);
     return () => {
+      clearInterval(eyeInterval);
       cancelAnimationFrame(animId);
     };
   }, [view, petState]);
@@ -390,7 +477,7 @@ export const App: React.FC = () => {
   };
 
   const startPawWave = () => {
-    const cx = 42, cy = 142;
+    const cx = 45, cy = 142;
     const keyframes = [
       { angle: 0, t: 0 },
       { angle: 60, t: 0.35 },
@@ -738,28 +825,99 @@ export const App: React.FC = () => {
   }, [showRadialMenu]);
 
   // ── Natural Random Eye Blinking ──
+  // ── Safe Blinking Effect ──
   useEffect(() => {
-    if (view !== "pet" || petState === "sleep") return;
+    if (view !== "pet") return;
 
     let timeoutId: any;
     let durationId: any;
+    let isActive = true;
+
     const scheduleNextBlink = () => {
-      const nextDelay = 2200 + Math.random() * 3200;
+      if (!isActive) return;
+      const nextDelay = 3000 + Math.random() * 3000;
       timeoutId = setTimeout(() => {
-        setIsBlinking(true);
+        if (!isActive) return;
+        if (petStateRef.current !== "sleep") {
+          setIsBlinking(true);
+        }
         durationId = setTimeout(() => {
+          if (!isActive) return;
           setIsBlinking(false);
           scheduleNextBlink();
-        }, 140);
+        }, 150);
       }, nextDelay);
     };
 
     scheduleNextBlink();
+
     return () => {
+      isActive = false;
       clearTimeout(timeoutId);
       clearTimeout(durationId);
+      setIsBlinking(false);
     };
-  }, [view, petState]);
+  }, [view]);
+
+  // ── Smart Music Detector & Dance Party Effect ──
+  useEffect(() => {
+    if (!audioDanceEnabled || view !== "pet") return;
+
+    let intervalId: any;
+    let lastMusicTime = 0;
+    const GRACE_MS = 5000; // Keep dancing 5s after last positive detection
+
+    const checkMusic = async () => {
+      try {
+        const isMusic: boolean = await invoke("check_is_music_playing");
+        if (isMusic) {
+          lastMusicTime = Date.now();
+          if (petStateRef.current === "idle" || petStateRef.current === "happy") {
+            setPetState("dancing");
+            spawnParticles(["note", "sparkle", "heart"], "#fabd2f");
+            const dancePhrases = lang === "ru"
+              ? ["Какая музыка! 🎶💃", "Я танцую под трек! 🕺✨", "Вот это бит! 🎧🔥", "Танцуют все! 💃🎶"]
+              : ["Loving this music! 🎶💃", "Dance party! 🕺✨", "Feel the rhythm! 🎧🔥", "Groovy track! 🎵✨"];
+            setThoughtBubbleText(dancePhrases[Math.floor(Math.random() * dancePhrases.length)]);
+          }
+        } else {
+          // Only stop dancing after grace period (5s of no music)
+          if (petStateRef.current === "dancing" && Date.now() - lastMusicTime > GRACE_MS) {
+            setPetState("idle");
+            setThoughtBubbleText(null);
+          }
+        }
+      } catch (err) {}
+    };
+
+    intervalId = setInterval(checkMusic, 1500);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [audioDanceEnabled, view, lang]);
+
+  // ── Dynamic Adaptive Window Sizing for Thoughts ──
+  useEffect(() => {
+    if (view !== "pet") return;
+
+    const adaptWindowSize = async () => {
+      try {
+        if (thoughtBubbleText) {
+          const isNearRightEdge = wanderPosRef.current && screenInfoRef.current && wanderPosRef.current.x > screenInfoRef.current.width - 360;
+          if (isNearRightEdge) {
+            await invoke("resize_and_shift_pet_window", { width: 460.0, height: 250.0, shiftX: -270.0 });
+          } else {
+            await invoke("resize_pet_window", { width: 460.0, height: 250.0 });
+          }
+        } else {
+          await invoke("resize_pet_window", { width: 185.0, height: 195.0 });
+        }
+      } catch (e) {}
+    };
+
+    adaptWindowSize();
+  }, [thoughtBubbleText, view]);
 
   // ── Auto Think Effect (With Live AI support) ──
   useEffect(() => {
@@ -789,6 +947,7 @@ export const App: React.FC = () => {
               apiKey,
               model: verifiedModel,
               prompt: t.aiThoughtPrompt,
+              systemPrompt: systemPrompt || null,
               customUrl: customUrl || null,
             });
             thought = aiThought.trim();
@@ -812,7 +971,7 @@ export const App: React.FC = () => {
           setPetState("idle");
           try {
             if (viewRef.current === "pet") {
-              await invoke("resize_pet_window", { width: 420.0, height: 350.0 });
+              await invoke("resize_pet_window", { width: 220.0, height: 240.0 });
             }
           } catch (e) {}
           scheduleNextThought();
@@ -870,14 +1029,57 @@ export const App: React.FC = () => {
     }
   };
 
-  const spawnParticles = (chars: string[], color: string) => {
+  const PARTICLE_ICONS: Record<string, React.ReactNode> = {
+    sparkle: (
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">
+        <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
+      </svg>
+    ),
+    star: (
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+      </svg>
+    ),
+    heart: (
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      </svg>
+    ),
+    fire: (
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">
+        <path d="M13.5 1.5s.15 3.38-2.25 5.62C9 9.38 6 9.75 6 15c0 3.31 2.69 6 6 6s6-2.69 6-6c0-4.5-4.5-13.5-4.5-13.5z" />
+      </svg>
+    ),
+    cookie: (
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#d79921" />
+        <circle cx="8" cy="8" r="1.5" fill="#3c3836" />
+        <circle cx="15" cy="9" r="1.5" fill="#3c3836" />
+        <circle cx="11" cy="14" r="1.5" fill="#3c3836" />
+        <circle cx="16" cy="15" r="1.5" fill="#3c3836" />
+        <circle cx="7" cy="15" r="1.5" fill="#3c3836" />
+      </svg>
+    ),
+    rage: (
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">
+        <path d="M7 2v11h3v9l7-12h-4l4-8z" />
+      </svg>
+    ),
+    note: (
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">
+        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+      </svg>
+    ),
+  };
+
+  const spawnParticles = (iconNames: string[], color: string) => {
     if (!particlesEnabled) return;
-    const newItems = chars.map((char) => ({
+    const newItems = iconNames.map((icon) => ({
       id: Math.random(),
-      char,
+      icon,
       color,
       left: 20 + Math.random() * 140,
-      size: 14 + Math.random() * 10,
+      size: 16 + Math.random() * 10,
     }));
     setParticles((prev) => [...prev, ...newItems]);
     setTimeout(() => {
@@ -919,6 +1121,8 @@ export const App: React.FC = () => {
     let pendingDy = 0;
     let isFrameScheduled = false;
 
+    let shakeEnergy = 0;
+
     const handleWindowPointerMove = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
       const deltaX = e.screenX - dragStartRef.current.x;
@@ -928,6 +1132,21 @@ export const App: React.FC = () => {
       if (dist > 3) {
         hasMovedRef.current = true;
         dragStartRef.current = { x: e.screenX, y: e.screenY };
+        
+        // Accumulate shake energy if pet is sleeping
+        if (petStateRef.current === "sleep") {
+          shakeEnergy += dist;
+          if (shakeEnergy > 380) {
+            setPetState("annoyed");
+            spawnParticles(["fire", "rage"], "#ff2222");
+            const grumpyPhrases = lang === "ru"
+              ? ["Эй! Зачем так трясти?! 💢", "Ну всё, я проснулся! 😤", "Дай поспать! 😾"]
+              : ["Hey! Why so rough?! 💢", "Fine, I'm awake! 😤", "Let me sleep! 😾"];
+            setThoughtBubbleText(grumpyPhrases[Math.floor(Math.random() * grumpyPhrases.length)]);
+            shakeEnergy = 0;
+          }
+        }
+
         pendingDx += deltaX;
         pendingDy += deltaY;
 
@@ -948,6 +1167,7 @@ export const App: React.FC = () => {
     };
 
     const handleWindowPointerUp = () => {
+      shakeEnergy = 0;
       if (dragHoldTimerRef.current) {
         clearTimeout(dragHoldTimerRef.current);
         dragHoldTimerRef.current = null;
@@ -956,16 +1176,22 @@ export const App: React.FC = () => {
       isDraggingRef.current = false;
       setIsDragging(false);
 
-      if (!hasMovedRef.current) {
-        // Short Click Reaction -> Happy Jump & Particles!
-        if (petStateRef.current !== "sleep") {
+      if (petStateRef.current === "annoyed") {
+        // Stay grumpy for 3 seconds after being released, then cool down to idle!
+        setTimeout(() => {
+          if (petStateRef.current === "annoyed") {
+            setPetState("idle");
+            setThoughtBubbleText(null);
+          }
+        }, 3000);
+      } else if (!hasMovedRef.current) {
+        // Short Click Reaction -> Happy Jump strictly when in idle state
+        if (petStateRef.current === "idle") {
           setPetState("happy");
-          spawnParticles(["★", "✦", "♥", "✨"], "#fe8019");
-          setTimeout(() => setPetState("idle"), 1400);
-        }
-      } else {
-        if (petStateRef.current !== "sleep") {
-          setPetState("idle");
+          spawnParticles(["sparkle", "star", "heart"], "#fe8019");
+          setTimeout(() => {
+            if (petStateRef.current === "happy") setPetState("idle");
+          }, 1400);
         }
       }
       hasMovedRef.current = false;
@@ -985,11 +1211,6 @@ export const App: React.FC = () => {
     if (e.button !== 0 || view !== "pet") return;
     if (showRadialMenu) setShowRadialMenu(false);
     
-    // Wake pet immediately on click
-    if (petStateRef.current === "sleep") {
-      setPetState("idle");
-    }
-    
     hasMovedRef.current = false;
     dragStartRef.current = { x: e.screenX, y: e.screenY };
 
@@ -1003,10 +1224,10 @@ export const App: React.FC = () => {
     }, 200);
   };
 
-  // ── PKM Right Click Logic ──
+  // ── PKM Right Click Logic (Blocked while sleeping, thinking, or during active emotions) ──
   const handlePetContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (view !== "pet") return;
+    if (view !== "pet" || isAskingRef.current || isAsking || chewing || petState === "sleep" || petState === "thinking" || petState === "happy") return;
     setShowRadialMenu((prev) => !prev);
   };
 
@@ -1027,6 +1248,8 @@ export const App: React.FC = () => {
     setTimeout(() => {
       setShowCookieFly(false);
       setPetState("happy");
+      const cVars: ("crunch" | "wiggle" | "hop")[] = ["crunch", "wiggle", "hop"];
+      setChewVariant(cVars[Math.floor(Math.random() * cVars.length)]);
       setChewing(true);
       
       const feedPhrases = lang === "ru" 
@@ -1034,8 +1257,14 @@ export const App: React.FC = () => {
         : ["Nom nom! 🍪", "Yummy! ✨", "Mmm, cookie! 😋", "Omnomnom! 🍪", "More please! 🐾"];
       const randomPhrase = feedPhrases[Math.floor(Math.random() * feedPhrases.length)];
       setThoughtBubbleText(randomPhrase);
-      spawnParticles(["♥", "🍪", "✦"], "#ff6b8a");
+      spawnParticles(["cookie", "star", "sparkle", "heart"], "#fe8019");
       addXp(10);
+      setFloatXpText("+10");
+      setTimeout(() => setFloatXpText(null), 1600);
+
+      try {
+        localStorage.setItem("pet_xp", JSON.stringify({ xp: xp + 10, level, cookies: newCookies, lastFeed: now }));
+      } catch (e) {}
 
       // Chewing animation ends after a short, lively 1.8 seconds (not long)
       setTimeout(() => {
@@ -1043,7 +1272,7 @@ export const App: React.FC = () => {
         setThoughtBubbleText(null);
         setPetState("idle");
       }, 1800);
-    }, 600);
+    }, 520);
   };
 
   const addXp = (amount: number) => {
@@ -1065,25 +1294,72 @@ export const App: React.FC = () => {
         currentXp = currentXp - needed;
         currentLvl += 1;
         setLevel(currentLvl);
-        spawnParticles(["★", "✦", "♦"], "#fe8019");
+        spawnParticles(["star", "sparkle"], "#fe8019");
       }
       localStorage.setItem("pet_xp", JSON.stringify({ level: currentLvl, xp: currentXp, cookies, lastFeed: lastFeedTime }));
       return currentXp;
     });
   };
 
+  const triggerNihmaEasterEgg = () => {
+    setPetState("nihma");
+    const nihmaPhrasesRu = [
+      "НИХМАДЕВ АКТИВИРОВАН! 🤪💥",
+      "Я ТЕПЕРЬ СВЕРХРАЗУМ! 🌀🧬",
+      "МОЙ КОД ГЛЮЧИТ ОТ МОЩИ! ⚡🤪",
+      "НИХМА ПРАВИТ ЭТИМ ПК! 👑💥",
+      "МЕНЯ РАСПИРАЕТ ОТ МОЩИ! 🚀🔥",
+      "СИСТЕМА ПЕРЕГРУЖЕНА! 💥🌀"
+    ];
+    const nihmaPhrasesEn = [
+      "NIHMADEV ACTIVATED! 🤪💥",
+      "MAXIMUM FREAK MODE! 🌀⚡",
+      "MY CODE IS GLITCHING OUT! ⚡🤪",
+      "NIHMADEV SUPREMACY! 👑🔥",
+      "POWER OVER 9000! 🚀🔥",
+      "SYSTEM OVERLOAD! 💥🌀"
+    ];
+    const phrases = lang === "ru" ? nihmaPhrasesRu : nihmaPhrasesEn;
+
+    let step = 0;
+    const interval = setInterval(() => {
+      const p = phrases[step % phrases.length];
+      setThoughtBubbleText(p);
+      spawnParticles(["rage", "fire", "sparkle", "star"], "#fe8019");
+      speakText(p);
+      step++;
+    }, 2000);
+
+    setThoughtBubbleText(phrases[0]);
+    spawnParticles(["rage", "fire", "sparkle", "star"], "#fe8019");
+
+    setTimeout(() => {
+      clearInterval(interval);
+      setThoughtBubbleText(null);
+      setPetState("idle");
+    }, 12000);
+  };
+
   const handleSendAsk = async () => {
+    if (isAsking || isAskingRef.current || !askQuery.trim()) return;
+
+    const prompt = askQuery.trim();
+    setAskQuery("");
+    setShowAskInput(false); // Instantly hide input bar when submitted!
+
+    const lowerPrompt = prompt.toLowerCase();
+    if (lowerPrompt.includes("нихма") || lowerPrompt.includes("nihma")) {
+      triggerNihmaEasterEgg();
+      return;
+    }
+
     if (!verifiedModel) {
       setThoughtBubbleText(t.aiNoModelErr);
       setTimeout(() => setThoughtBubbleText(null), 4000);
-      setShowAskInput(false);
       return;
     }
-    if (isAskingRef.current || !askQuery.trim()) return;
     isAskingRef.current = true;
-    const prompt = askQuery.trim();
-    setAskQuery("");
-    setShowAskInput(false);
+    setIsAsking(true);
 
     // Expand window to 550x350 so thoughts/answers never get clipped by window bounds
     try {
@@ -1100,6 +1376,7 @@ export const App: React.FC = () => {
         apiKey: apiKey || "",
         model: selectedModel || "gpt-4o-mini",
         prompt,
+        systemPrompt: systemPrompt || null,
         customUrl: customUrl || null,
       });
       setThoughtBubbleText(response);
@@ -1108,6 +1385,8 @@ export const App: React.FC = () => {
       setThoughtBubbleText(err.toString() || "AI Error");
     } finally {
       isAskingRef.current = false;
+      setIsAsking(false);
+      setShowAskInput(false);
     }
 
     setTimeout(async () => {
@@ -1115,7 +1394,7 @@ export const App: React.FC = () => {
       setPetState("idle");
       try {
         if (viewRef.current === "pet") {
-          await invoke("resize_pet_window", { width: 420.0, height: 350.0 });
+          await invoke("resize_pet_window", { width: 220.0, height: 240.0 });
         }
       } catch (e) {}
     }, 10000);
@@ -1160,15 +1439,10 @@ export const App: React.FC = () => {
           <div id="splash-bg"></div>
           <div id="splash-inner">
             <div id="splash-icon-wrap">
-              <svg id="splash-icon" viewBox="0 0 24 24" width="64" height="64" fill="#fbf1c7">
-                <path
-                  clipRule="evenodd"
-                  d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z"
-                />
-              </svg>
+              <img id="splash-icon" src="/app-icon.png" width="64" height="64" alt="Clapet Logo" style={{ borderRadius: "12px", objectFit: "contain" }} />
             </div>
             <div id="splash-title">Clapet</div>
-            <div id="splash-subtitle">desktop pet v1.0.0</div>
+            <div id="splash-subtitle">desktop pet v1.0.0 (BUILD #2)</div>
             <div id="splash-dots">
               <span className="splash-dot"></span>
               <span className="splash-dot"></span>
@@ -1183,14 +1457,9 @@ export const App: React.FC = () => {
         <div id="launcher">
           <header id="l-header">
             <div id="l-header-left">
-              <svg id="l-app-icon" viewBox="0 0 24 24" width="18" height="18" fill="#fff">
-                <path
-                  clipRule="evenodd"
-                  d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z"
-                />
-              </svg>
+              <img id="l-app-icon" src="/app-icon.png" width="20" height="20" alt="Clapet Logo" style={{ borderRadius: "4px", objectFit: "contain" }} />
               <span id="l-title">Clapet</span>
-              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 6px", borderRadius: "10px", background: "var(--accent)", color: "#111" }}>v1.0.0</span>
+              <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px", background: "var(--accent)", color: "#111" }}>v1.0.0 (BUILD #2)</span>
             </div>
             <div id="l-search">
               <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="#888" strokeWidth="1.4" strokeLinecap="round">
@@ -1391,6 +1660,38 @@ export const App: React.FC = () => {
                         />
                         <span className="range-val">{walkSpeed.toFixed(1)}</span>
                       </div>
+                    </div>
+
+                    <div className="setting-row" style={{ display: matchesSearch(t.autoWalk, "walk", "wander", "ходьба") ? "flex" : "none" }}>
+                      <label className="toggle-row">
+                        <span>{t.autoWalk}</span>
+                        <span
+                          className={`toggle-switch ${autoWalk ? "on" : ""}`}
+                          onClick={() => {
+                            const val = !autoWalk;
+                            setAutoWalk(val);
+                            localStorage.setItem("auto_walk", val ? "1" : "0");
+                          }}
+                        >
+                          <span className="toggle-slider"></span>
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="setting-row" style={{ display: matchesSearch(t.audioDance, "music", "dance", "аудио", "музыка", "танец") ? "flex" : "none" }}>
+                      <label className="toggle-row">
+                        <span>{t.audioDance}</span>
+                        <span
+                          className={`toggle-switch ${audioDanceEnabled ? "on" : ""}`}
+                          onClick={() => {
+                            const val = !audioDanceEnabled;
+                            setAudioDanceEnabled(val);
+                            localStorage.setItem("audio_dance_enabled", String(val));
+                          }}
+                        >
+                          <span className="toggle-slider"></span>
+                        </span>
+                      </label>
                     </div>
 
                     <div className="setting-row" style={{ display: matchesSearch(t.autoThink, "think", "мысли", "автомысли") ? "flex" : "none" }}>
@@ -1648,6 +1949,36 @@ export const App: React.FC = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Custom System Instruction (System Prompt) */}
+                    <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid var(--line)" }}>
+                      <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--fg)", marginBottom: "6px", display: "block" }}>
+                        {t.systemPromptLabel}
+                      </label>
+                      <textarea
+                        className="input-field"
+                        rows={3}
+                        style={{
+                          width: "100%",
+                          padding: "8px 12px",
+                          borderRadius: "8px",
+                          background: "var(--bg-3)",
+                          color: "var(--fg)",
+                          border: "1px solid var(--line)",
+                          fontSize: "11.5px",
+                          fontFamily: "inherit",
+                          resize: "vertical",
+                          outline: "none"
+                        }}
+                        value={systemPrompt}
+                        placeholder={t.systemPromptPlaceholder}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSystemPrompt(val);
+                          localStorage.setItem("system_prompt", val);
+                        }}
+                      />
+                    </div>
 
                     <div className="setting-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "8px", borderTop: "1px solid var(--line)", paddingTop: "14px", marginTop: "14px" }}>
                       <label className="toggle-row" style={{ width: "100%" }}>
@@ -1953,7 +2284,7 @@ export const App: React.FC = () => {
           <div id="pet-mode-inner">
             <div
               id="pet-container"
-              className={`state-${petState} ${isDragging ? "dragging" : ""}`}
+              className={`state-${petState} idle-var-${idleVariant} sleep-var-${sleepVariant} chew-var-${chewVariant} walk-var-${walkVariant} ${isDragging ? "dragging" : ""}`}
               style={{ opacity: petOpacity }}
               onPointerDown={handlePetPointerDown}
               onContextMenu={handlePetContextMenu}
@@ -1975,11 +2306,13 @@ export const App: React.FC = () => {
                     style={{
                       left: `${p.left}px`,
                       color: p.color,
-                      fontSize: `${p.size}px`,
+                      width: `${p.size}px`,
+                      height: `${p.size}px`,
+                      display: "inline-block",
                       bottom: "45%",
                     }}
                   >
-                    {p.char}
+                    {PARTICLE_ICONS[p.icon] || PARTICLE_ICONS.sparkle}
                   </div>
                 ))}
                 {floatLetters.map((l) => (
@@ -1997,50 +2330,84 @@ export const App: React.FC = () => {
                   </filter>
                 </defs>
 
-                {/* Pet Tail */}
-                <g id="tail" className="tail-part">
-                  <path d="M 45 155 Q 28 148 24 162 Q 32 172 45 165 Z" fill={petColor} />
-                </g>
+                {(() => {
+                  const activeColor = petState === "annoyed" ? "#ff2222" : petColor;
+                  return (
+                    <>
+                      {/* Legs */}
+                      <g id="legs" className="legs-part">
+                        <rect id="leg-bl" x="58" y="180" width="14" height="22" fill={activeColor} />
+                        <rect id="leg-fl" x="80" y="180" width="14" height="22" fill={activeColor} />
+                        <rect id="leg-br" x="128" y="180" width="14" height="22" fill={activeColor} />
+                        <rect id="leg-fr" x="150" y="180" width="14" height="22" fill={activeColor} />
+                      </g>
 
-                <g id="body" className="body-part">
-                  <rect x="45" y="100" width="130" height="90" rx="4" fill={petColor} filter="url(#shadow)" />
-                  <rect x="55" y="110" width="110" height="60" rx="2" fill={petColor} opacity="0.25" />
-                </g>
+                      <g id="body" className="body-part">
+                        <rect x="45" y="100" width="130" height="90" rx="0" fill={activeColor} filter="url(#shadow)" />
+                        <rect x="55" y="110" width="110" height="60" rx="0" fill={activeColor} opacity="0.25" />
+                      </g>
 
-                {/* Pet Ears */}
-                <g id="ears" className="ears-part">
-                  <polygon points="52,100 64,80 76,100" fill={petColor} />
-                  <polygon points="144,100 156,80 168,100" fill={petColor} />
-                </g>
+                      <g id="head" className="head-part">
+                        {/* Eye Group Priority */}
+                        {isDragging ? (
+                          <g id="grab-eyes">
+                            <polyline points="78,137 98,145 78,153" stroke="#1A1A1A" strokeWidth="5" fill="none" />
+                            <polyline points="144,137 124,145 144,153" stroke="#1A1A1A" strokeWidth="5" fill="none" />
+                          </g>
+                        ) : petState === "sleep" ? (
+                          <g id="sleep-eyes">
+                            <rect x="76" y="143" width="24" height="3" fill="#1A1A1A" transform="rotate(-3, 88, 144.5)" />
+                            <rect x="122" y="143" width="24" height="3" fill="#1A1A1A" transform="rotate(3, 134, 144.5)" />
+                          </g>
+                        ) : petState === "happy" || chewing ? (
+                          <g id="happy-eyes">
+                            <polyline points="82,147 88,139 94,147" stroke="#1A1A1A" strokeWidth="4" fill="none" />
+                            <polyline points="128,147 134,139 140,147" stroke="#1A1A1A" strokeWidth="4" fill="none" />
+                          </g>
+                        ) : petState === "nihma" ? (
+                          <g id="nihma-eyes">
+                            {/* Super crazy misaligned googly eyes! */}
+                            <circle cx="65" cy="115" r="18" fill="#fff" stroke="#1A1A1A" strokeWidth="4" />
+                            <circle cx="60" cy="110" r="7" fill="#1A1A1A" />
+                            <circle cx="155" cy="165" r="22" fill="#fff" stroke="#1A1A1A" strokeWidth="4" />
+                            <circle cx="160" cy="170" r="9" fill="#ff0055" />
+                          </g>
+                        ) : petState === "annoyed" ? (
+                          <g id="annoyed-eyes">
+                            {/* Furious slant eyes >:( */}
+                            <polygon points="70,136 100,146 70,150" fill="#1A1A1A" />
+                            <polygon points="150,136 120,146 150,150" fill="#1A1A1A" />
+                            <line x1="66" y1="128" x2="104" y2="140" stroke="#1A1A1A" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="154" y1="128" x2="116" y2="140" stroke="#1A1A1A" strokeWidth="6" strokeLinecap="round" />
+                          </g>
+                        ) : isBlinking ? (
+                          <g id="blink-eyes">
+                            <rect x={EYE_BASES.left.x + eyeOffset.x} y={EYE_BASES.left.y + eyeOffset.y + 8} width="30" height="3" fill="#1A1A1A" />
+                            <rect x={EYE_BASES.right.x + eyeOffset.x} y={EYE_BASES.right.y + eyeOffset.y + 8} width="30" height="3" fill="#1A1A1A" />
+                          </g>
+                        ) : (
+                          <g className="eye-group">
+                            <rect x={EYE_BASES.left.x + eyeOffset.x} y={EYE_BASES.left.y + eyeOffset.y} width="30" height="20" fill="#1A1A1A" />
+                            <rect x={EYE_BASES.right.x + eyeOffset.x} y={EYE_BASES.right.y + eyeOffset.y} width="30" height="20" fill="#1A1A1A" />
+                          </g>
+                        )}
 
-                <g id="head" className="head-part">
-                  {/* Eye Group Priority (Strictly 1 pair of eyes at a time) */}
-                  {isDragging ? (
-                    <g id="grab-eyes">
-                      <polyline points="78,137 98,145 78,153" stroke="#1A1A1A" strokeWidth="5" fill="none" />
-                      <polyline points="144,137 124,145 144,153" stroke="#1A1A1A" strokeWidth="5" fill="none" />
-                    </g>
-                  ) : petState === "sleep" ? (
-                    <g id="sleep-eyes">
-                      <rect x="76" y="143" width="24" height="3" fill="#1A1A1A" transform="rotate(-3, 88, 144.5)" />
-                      <rect x="122" y="143" width="24" height="3" fill="#1A1A1A" transform="rotate(3, 134, 144.5)" />
-                    </g>
-                  ) : petState === "happy" || chewing ? (
-                    <g id="happy-eyes">
-                      <polyline points="82,147 88,139 94,147" stroke="#1A1A1A" strokeWidth="4" fill="none" />
-                      <polyline points="128,147 134,139 140,147" stroke="#1A1A1A" strokeWidth="4" fill="none" />
-                    </g>
-                  ) : isBlinking ? (
-                    <g id="blink-eyes">
-                      <rect x={EYE_BASES.left.x + eyeOffset.x} y={EYE_BASES.left.y + eyeOffset.y + 8} width="30" height="3" fill="#1A1A1A" />
-                      <rect x={EYE_BASES.right.x + eyeOffset.x} y={EYE_BASES.right.y + eyeOffset.y + 8} width="30" height="3" fill="#1A1A1A" />
-                    </g>
-                  ) : (
-                    <g className="eye-group">
-                      <rect x={EYE_BASES.left.x + eyeOffset.x} y={EYE_BASES.left.y + eyeOffset.y} width="30" height="20" fill="#1A1A1A" />
-                      <rect x={EYE_BASES.right.x + eyeOffset.x} y={EYE_BASES.right.y + eyeOffset.y} width="30" height="20" fill="#1A1A1A" />
-                    </g>
-                  )}
+                        {/* Angry teeth mouth when annoyed */}
+                        {petState === "annoyed" && (
+                          <g id="angry-mouth">
+                            <path d="M 88 162 L 132 162 L 126 172 L 110 164 L 94 172 Z" fill="#ffffff" stroke="#1A1A1A" strokeWidth="3.5" strokeLinejoin="round" />
+                          </g>
+                        )}
+
+                        {/* Derpy giant mouth with tongue for Nihma */}
+                        {petState === "nihma" && (
+                          <g id="nihma-mouth">
+                            <path d="M 65 150 Q 110 200, 155 150 Z" fill="#1A1A1A" />
+                            <path d="M 95 165 Q 110 195, 125 165 Z" fill="#ff2266" />
+                            <rect x="85" y="150" width="12" height="14" fill="#fff" rx="2" />
+                            <rect x="123" y="150" width="12" height="14" fill="#fff" rx="2" />
+                          </g>
+                        )}
 
                   {chewing && (
                     <g id="mouth" style={{ opacity: 1 }}>
@@ -2055,20 +2422,16 @@ export const App: React.FC = () => {
                   )}
                 </g>
 
-                <g id="legs" className="legs-part">
-                  <rect id="leg-bl" x="58" y="185" width="14" height="22" fill={petColor} />
-                  <rect id="leg-fl" x="80" y="185" width="14" height="22" fill={petColor} />
-                  <rect id="leg-br" x="128" y="185" width="14" height="22" fill={petColor} />
-                  <rect id="leg-fr" x="150" y="185" width="14" height="22" fill={petColor} />
-                </g>
-
                 <g id="left-paw" className="paw left-paw" transform={leftPawTransform}>
-                  <rect x="25" y="132" width="20" height="20" fill={petColor} />
+                  <rect x="25" y="132" width="20" height="20" fill={activeColor} />
                 </g>
                 <g id="right-paw" className="paw right-paw">
-                  <rect x="175" y="132" width="20" height="20" fill={petColor} />
+                  <rect x="175" y="132" width="20" height="20" fill={activeColor} />
                 </g>
-              </svg>
+              </>
+            );
+          })()}
+        </svg>
 
               {/* ── Radial Menu (Dynamic circular positioning like Electron) ── */}
               {showRadialMenu && (() => {
@@ -2213,18 +2576,46 @@ export const App: React.FC = () => {
               {/* Cookie fly animation */}
               {showCookieFly && <div className="cookie-fly">🍪</div>}
 
-              {/* AI Input (Enter to send, OK button removed) */}
+              {/* AI Input (Enter to send, instantly disappears on send) */}
               {showAskInput && (
-                <div id="ask-input-container" style={{ position: "absolute", bottom: "-40px", left: "0", right: "0", display: "flex" }}>
+                <div
+                  id="ask-input-container"
+                  style={{
+                    position: "absolute",
+                    bottom: "16px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "185px",
+                    display: "flex",
+                    zIndex: 100,
+                    pointerEvents: "auto"
+                  }}
+                >
                   <input
                     type="text"
                     id="ask-input"
+                    disabled={isAsking}
                     placeholder={lang === "ru" ? "Спроси AI... (Enter)" : "Ask AI... (Enter)"}
                     value={askQuery}
-                    onChange={(e) => setAskQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendAsk()}
+                    onChange={(e) => {
+                      setAskQuery(e.target.value);
+                      resetAskInputTimer();
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && !isAsking && handleSendAsk()}
                     autoFocus
-                    style={{ width: "100%", padding: "6px 10px", fontSize: "11px", borderRadius: "6px", border: "1px solid #504945", background: "#1d2021", color: "#fbf1c7", outline: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}
+                    style={{
+                      width: "100%",
+                      padding: "6px 10px",
+                      fontSize: "11px",
+                      borderRadius: "18px",
+                      border: "1px solid rgba(254,128,25,0.6)",
+                      background: "rgba(29,32,33,0.96)",
+                      color: "#fbf1c7",
+                      outline: "none",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.6)",
+                      pointerEvents: "auto",
+                      textAlign: "center"
+                    }}
                   />
                 </div>
               )}

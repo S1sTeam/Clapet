@@ -137,13 +137,32 @@ fn show_launcher(window: Window) -> Result<(), String> {
 
 #[tauri::command]
 fn show_pet(window: Window) -> Result<(), String> {
-    let _ = window.set_size(Size::Logical(tauri::LogicalSize::new(420.0, 350.0)));
+    let _ = window.set_size(Size::Logical(tauri::LogicalSize::new(220.0, 240.0)));
     let _ = window.set_resizable(false);
     Ok(())
 }
 
 #[tauri::command]
+fn set_cursor_passthrough(window: Window, ignore: bool) -> Result<(), String> {
+    window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn resize_pet_window(window: Window, width: f64, height: f64) -> Result<(), String> {
+    let _ = window.set_size(Size::Logical(tauri::LogicalSize::new(width, height)));
+    Ok(())
+}
+
+#[tauri::command]
+fn resize_and_shift_pet_window(window: Window, width: f64, height: f64, shift_x: f64) -> Result<(), String> {
+    if shift_x != 0.0 {
+        if let (Ok(pos), Ok(Some(monitor))) = (window.outer_position(), window.primary_monitor()) {
+            let scale_factor = monitor.scale_factor();
+            let logical_pos = pos.to_logical::<f64>(scale_factor);
+            let new_x = logical_pos.x + shift_x;
+            let _ = window.set_position(Position::Logical(tauri::LogicalPosition::new(new_x, logical_pos.y)));
+        }
+    }
     let _ = window.set_size(Size::Logical(tauri::LogicalSize::new(width, height)));
     Ok(())
 }
@@ -335,6 +354,7 @@ async fn send_ai_message(
     api_key: String,
     model: String,
     prompt: String,
+    system_prompt: Option<String>,
     custom_url: Option<String>,
     proxy: Option<ProxyConfig>,
 ) -> Result<String, String> {
@@ -355,9 +375,21 @@ async fn send_ai_message(
         _ => ("https://api.openai.com/v1/chat/completions".to_string(), format!("Bearer {}", api_key)),
     };
 
+    let mut messages = Vec::new();
+    let mut user_content = prompt.clone();
+
+    if let Some(sys) = system_prompt {
+        let trimmed_sys = sys.trim();
+        if !trimmed_sys.is_empty() {
+            messages.push(serde_json::json!({ "role": "system", "content": trimmed_sys }));
+            user_content = format!("[SYSTEM INSTRUCTION: STRICTLY OBEY THIS CHARACTER & RULES: {}]\n\n[USER MESSAGE]: {}", trimmed_sys, prompt);
+        }
+    }
+    messages.push(serde_json::json!({ "role": "user", "content": user_content }));
+
     let payload = serde_json::json!({
         "model": model,
-        "messages": [{ "role": "user", "content": prompt }],
+        "messages": messages,
         "max_tokens": 500
     });
 
@@ -446,8 +478,127 @@ async fn speak_elevenlabs(api_key: String, text: String, voice_id: Option<String
     Err(format!("ElevenLabs API Response ({})", err_text))
 }
 
+#[tauri::command]
+fn check_is_music_playing() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        use std::ffi::OsString;
+        use std::os::windows::ffi::OsStringExt;
+        use winapi::shared::minwindef::{BOOL, LPARAM, TRUE};
+        use winapi::um::winuser::{EnumWindows, GetWindowTextW, IsWindowVisible};
+
+        let mut music_found = false;
+
+        unsafe extern "system" fn enum_windows_proc(hwnd: winapi::shared::windef::HWND, lparam: LPARAM) -> BOOL {
+            if IsWindowVisible(hwnd) != 0 {
+                let mut buffer = [0u16; 512];
+                let len = GetWindowTextW(hwnd, buffer.as_mut_ptr(), buffer.len() as i32);
+                if len > 0 {
+                    let title = OsString::from_wide(&buffer[..len as usize]).to_string_lossy().to_lowercase();
+                    
+                    // Strictly exclude Advertisements!
+                    if title.contains("реклама") || title.contains("advertisement") || title.contains(" promo ") {
+                        return TRUE;
+                    }
+
+                    // ── TIER 1: Play symbol ▶ — universal "audio is playing" indicator ──
+                    // SoundCloud, AIMP, and many players add ▶ to window title when playing
+                    if title.contains('\u{25B6}') || title.contains('\u{25BA}') || title.contains('\u{23F5}') || title.contains('\u{23EF}') {
+                        let music_flag = lparam as *mut bool;
+                        *music_flag = true;
+                        return 0;
+                    }
+
+                    // ── TIER 2: Desktop music players (show song info only when playing) ──
+                    let players = [
+                        "aimp", "foobar2000", "winamp", "vlc media player",
+                        "musicbee", "potplayer", "mediamonkey", "clementine",
+                        "audacious", "deadbeef", "itunes", "jetaudio", "mpv",
+                    ];
+                    for p in &players {
+                        if title.contains(p) {
+                            let music_flag = lparam as *mut bool;
+                            *music_flag = true;
+                            return 0;
+                        }
+                    }
+
+                    // ── TIER 3: Audio file extensions in title ──
+                    let extensions = [
+                        ".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg",
+                        ".wma", ".opus", ".ape", ".alac",
+                    ];
+                    for ext in &extensions {
+                        if title.contains(ext) {
+                            let music_flag = lparam as *mut bool;
+                            *music_flag = true;
+                            return 0;
+                        }
+                    }
+
+                    // ── TIER 4: Music content keywords (specific enough on their own) ──
+                    let music_words = [
+                        "official video", "official audio", "official music",
+                        "music video", "remix", "feat.", "ft.",
+                        "lyric", "lyrics", "full album", "live performance",
+                        "acoustic", "instrumental", "karaoke", "nightcore",
+                        " трек", " песня", " клип", "альбом", "плейлист",
+                        "слушать",
+                    ];
+                    for mw in &music_words {
+                        if title.contains(mw) {
+                            let music_flag = lparam as *mut bool;
+                            *music_flag = true;
+                            return 0;
+                        }
+                    }
+
+                    // ── TIER 5: Streaming sites — only match if track title before site name ──
+                    // "Artist - Song | SoundCloud" → pos ~25 ✓ (track playing)
+                    // "SoundCloud - Hear the world" → pos 0 ✗ (just homepage)
+                    let streaming_sites = [
+                        "soundcloud", "spotify", "deezer", "apple music",
+                        "tidal", "bandcamp", "pandora", "youtube music",
+                        "yandex music", "яндекс музыка", "vk music", "вк музыка",
+                        "zvuk.com", "mts music",
+                    ];
+                    for site in &streaming_sites {
+                        if let Some(pos) = title.find(site) {
+                            if pos >= 8 {
+                                let music_flag = lparam as *mut bool;
+                                *music_flag = true;
+                                return 0;
+                            }
+                        }
+                    }
+                }
+            }
+            TRUE
+        }
+
+        unsafe {
+            EnumWindows(Some(enum_windows_proc), &mut music_found as *mut bool as LPARAM);
+        }
+
+        return music_found;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "windows")]
+    {
+        std::env::set_var(
+            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+            "--disable-features=RendererCodeCache,BackForwardCache --js-flags=\"--max-old-space-size=64\" --disable-gpu-shader-disk-cache --disk-cache-size=1",
+        );
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -467,7 +618,10 @@ pub fn run() {
             get_cursor_relative,
             send_ai_message,
             resize_pet_window,
-            speak_elevenlabs
+            speak_elevenlabs,
+            check_is_music_playing,
+            set_cursor_passthrough,
+            resize_and_shift_pet_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

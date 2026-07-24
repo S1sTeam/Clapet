@@ -264,35 +264,34 @@ html, body, #root {
 
 /* ── Fluid Pet Animation States ── */
 
-.ears-part {
-  animation: ear-twitch 4.5s ease-in-out infinite;
-  transform-origin: 110px 100px;
+.state-annoyed .body-part,
+.state-annoyed .head-part,
+.state-annoyed .legs-part,
+.state-annoyed .paw {
+  animation: rage-vibrate 0.12s ease-in-out infinite !important;
+  filter: drop-shadow(0 0 16px #ff0000) drop-shadow(0 0 6px #ff4400) !important;
 }
 
-@keyframes ear-twitch {
-  0%, 88%, 100% { transform: rotate(0deg); }
-  92% { transform: rotate(-6deg); }
-  96% { transform: rotate(6deg); }
+@keyframes rage-vibrate {
+  0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+  25% { transform: translateX(-3px) translateY(-1px) rotate(-3deg); }
+  50% { transform: translateX(3px) translateY(1px) rotate(3deg); }
+  75% { transform: translateX(-2px) translateY(2px) rotate(-2deg); }
 }
 
-.tail-part {
-  animation: tail-sway 3.5s ease-in-out infinite;
-  transform-origin: 45px 155px;
+.left-paw {
+  transform-origin: 45px 142px;
+}
+.right-paw {
+  transform-origin: 175px 142px;
 }
 
-@keyframes tail-sway {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(10deg); }
-}
-
-.state-idle .body-part {
-  animation: breathe var(--breathe-speed, 3s) cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-  transform-origin: 110px 145px;
-}
+.state-idle .body-part,
 .state-idle .head-part,
 .state-idle .legs-part,
 .state-idle .paw {
   animation: breathe var(--breathe-speed, 3s) cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  transform-origin: 110px 145px;
 }
 
 @keyframes breathe {
@@ -304,26 +303,37 @@ html, body, #root {
   }
 }
 
-/* Dragging shake & elasticity */
-.dragging .body-part {
-  transform: scaleY(1.1) scaleX(0.92);
-  transition: transform 0.15s ease-out;
+/* Dragging dangle & elasticity */
+.dragging .body-part,
+.dragging .head-part {
+  animation: dangle-body 0.25s ease-in-out infinite !important;
+  transform-origin: 110px 100px;
 }
-.dragging .legs-part,
+.dragging .legs-part {
+  animation: dangle-legs 0.22s ease-in-out infinite !important;
+  transform-origin: 110px 180px;
+}
 .dragging .paw {
-  animation: shake 0.14s ease-in-out infinite;
+  animation: dangle-paws 0.28s ease-in-out infinite !important;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0) rotate(0deg); }
-  25% { transform: translateX(-2.5px) rotate(-3.5deg); }
-  50% { transform: translateX(2.5px) rotate(3.5deg); }
-  75% { transform: translateX(-1.5px) rotate(-2deg); }
+@keyframes dangle-body {
+  0%, 100% { transform: scaleY(1.14) scaleX(0.88) rotate(0deg); }
+  50% { transform: scaleY(1.06) scaleX(0.94) rotate(-4deg); }
+}
+@keyframes dangle-legs {
+  0%, 100% { transform: rotate(-5deg) translateY(4px); }
+  50% { transform: rotate(8deg) translateY(6px); }
+}
+@keyframes dangle-paws {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(14deg); }
 }
 
+.state-thinking .body-part,
 .state-thinking .head-part {
-  animation: tilt-head 2.2s ease-in-out infinite;
-  transform-origin: 110px 140px;
+  animation: think-tilt-head 1.8s ease-in-out infinite !important;
+  transform-origin: 110px 145px;
 }
 .state-thinking #thought-bubble {
   display: block;
@@ -331,10 +341,11 @@ html, body, #root {
   animation: float-pulse 2s ease-in-out infinite;
 }
 
-@keyframes tilt-head {
-  0%, 100% { transform: rotate(0deg) translateY(0); }
-  25% { transform: rotate(4.5deg) translateY(-2px); }
-  75% { transform: rotate(-4.5deg) translateY(-2px); }
+@keyframes think-tilt-head {
+  0%, 100% { transform: translateY(0) rotate(0deg) scaleX(1); }
+  25% { transform: translateY(-6px) rotate(-6deg) scaleX(0.96); }
+  50% { transform: translateY(-2px) rotate(0deg) scaleX(1.02); }
+  75% { transform: translateY(-6px) rotate(6deg) scaleX(0.96); }
 }
 
 @keyframes float-pulse {
@@ -379,39 +390,246 @@ html, body, #root {
 .state-sleep #sleep-eyes {
   display: block !important;
 }
-.state-sleep .body-part {
-  animation: lie-down 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards, sleep-breathe 4.2s ease-in-out 0.6s infinite;
-  transform-origin: 110px 185px;
-}
-.state-sleep .head-part {
-  animation: lie-down 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards, sleep-breathe 4.2s ease-in-out 0.6s infinite;
-  transform-origin: 110px 185px;
-}
-.state-sleep .legs-part {
-  animation: legs-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
+.state-sleep .body-part,
+.state-sleep .head-part,
+.state-sleep .legs-part,
 .state-sleep .paw {
-  animation: paws-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: fall-asleep-side 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, sleep-side-breathe 4.5s ease-in-out 0.65s infinite;
+  transform-origin: 110px 185px;
+  opacity: 1 !important;
 }
 
-@keyframes sleep-breathe {
-  0%, 100% { transform: translateY(16px) scaleY(0.95) scaleX(1.02); }
-  50% { transform: translateY(11px) scaleY(1.02) scaleX(0.98); }
+#pet-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: auto !important;
+  cursor: grab;
+  overflow: visible !important;
 }
 
-@keyframes lie-down {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(16px); }
+@keyframes fall-asleep-side {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); }
+  60% { transform: translateY(22px) translateX(26px) rotate(-88deg); }
+  85% { transform: translateY(18px) translateX(22px) rotate(-80deg); }
+  100% { transform: translateY(20px) translateX(24px) rotate(-84deg); }
 }
 
-@keyframes legs-up {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-28px); }
+@keyframes sleep-side-breathe {
+  0%, 100% { transform: translateY(20px) translateX(24px) rotate(-84deg) scaleY(0.96) scaleX(1.02); }
+  50% { transform: translateY(16px) translateX(24px) rotate(-84deg) scaleY(1.03) scaleX(0.97); }
 }
 
-@keyframes paws-up {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-28px); }
+@keyframes sleep-legs-tuck {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); }
+  100% { transform: translateY(12px) translateX(16px) rotate(-84deg) scale(0.85); }
+}
+
+@keyframes sleep-paws-tuck {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); }
+  100% { transform: translateY(10px) translateX(14px) rotate(-84deg) scale(0.85); }
+}
+
+/* ── Dance Party State ── */
+.state-dancing .body-part,
+.state-dancing .head-part {
+  animation: dance-groove 0.42s ease-in-out infinite !important;
+  transform-origin: 110px 185px;
+}
+.state-dancing .left-paw {
+  animation: dance-left-paw 0.42s ease-in-out infinite !important;
+}
+.state-dancing .right-paw {
+  animation: dance-right-paw 0.42s ease-in-out infinite 0.21s !important;
+}
+
+@keyframes dance-groove {
+  0%, 100% { transform: translateY(0) rotate(-5deg) scaleY(0.95) scaleX(1.05); }
+  50% { transform: translateY(-16px) rotate(5deg) scaleY(1.10) scaleX(0.92); }
+}
+@keyframes dance-left-paw {
+  0%, 100% { transform: rotate(-30deg); }
+  50% { transform: rotate(15deg); }
+}
+@keyframes dance-right-paw {
+  0%, 100% { transform: rotate(-15deg); }
+  50% { transform: rotate(30deg); }
+}
+
+/* ── Nihma Easter Egg State (Ultra Crazy Freak Mode 3000) ── */
+.state-nihma .body-part {
+  animation: nihma-body-freak 0.22s ease-in-out infinite alternate, nihma-hue 0.4s linear infinite !important;
+  transform-origin: 110px 185px;
+}
+.state-nihma .head-part {
+  animation: nihma-head-freak 0.18s ease-in-out infinite alternate !important;
+  transform-origin: 110px 140px;
+}
+.state-nihma .left-ear {
+  animation: nihma-ear-l 0.12s ease-in-out infinite alternate !important;
+}
+.state-nihma .right-ear {
+  animation: nihma-ear-r 0.12s ease-in-out infinite alternate 0.05s !important;
+}
+.state-nihma #nihma-eyes {
+  animation: nihma-eye-spin 0.25s linear infinite !important;
+  transform-origin: 110px 140px;
+}
+.state-nihma .left-paw,
+.state-nihma .right-paw {
+  animation: nihma-paws 0.15s ease-in-out infinite alternate !important;
+}
+
+@keyframes nihma-body-freak {
+  0% { transform: translateY(-25px) rotate(-40deg) scaleY(1.6) scaleX(0.5); }
+  33% { transform: translateY(20px) rotate(60deg) scaleY(0.5) scaleX(1.7); }
+  66% { transform: translateY(-35px) rotate(-110deg) scaleY(1.4) scaleX(0.7); }
+  100% { transform: translateY(15px) rotate(210deg) scaleY(0.6) scaleX(1.6); }
+}
+
+@keyframes nihma-head-freak {
+  0% { transform: rotate(0deg) scale(1.2); }
+  50% { transform: rotate(-180deg) scale(0.6); }
+  100% { transform: rotate(180deg) scale(1.4); }
+}
+
+@keyframes nihma-eye-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.3); }
+  100% { transform: rotate(360deg) scale(0.7); }
+}
+
+@keyframes nihma-hue {
+  0% { filter: hue-rotate(0deg) drop-shadow(0 0 20px #fe8019); }
+  50% { filter: hue-rotate(180deg) drop-shadow(0 0 30px #b8bb26); }
+  100% { filter: hue-rotate(360deg) drop-shadow(0 0 20px #fb4934); }
+}
+
+@keyframes nihma-ear-l {
+  0% { transform: rotate(-120deg) scale(2); }
+  100% { transform: rotate(90deg) scale(0.4); }
+}
+
+@keyframes nihma-ear-r {
+  0% { transform: rotate(90deg) scale(0.4); }
+  100% { transform: rotate(120deg) scale(2); }
+}
+
+@keyframes nihma-paws {
+  0% { transform: translateY(-40px) rotate(-90deg); }
+  100% { transform: translateY(40px) rotate(90deg); }
+}
+
+/* ── Sub-Variant Animations ── */
+
+/* IDLE: Bounce */
+.state-idle.idle-var-bounce .body-part,
+.state-idle.idle-var-bounce .head-part {
+  animation: idle-bounce-anim 1.4s ease-in-out infinite !important;
+  transform-origin: 110px 185px;
+}
+@keyframes idle-bounce-anim {
+  0%, 100% { transform: translateY(0) rotate(0deg) scaleX(1); }
+  25% { transform: translateY(-8px) rotate(-3deg) scaleX(0.98); }
+  50% { transform: translateY(0) rotate(0deg) scaleX(1.02); }
+  75% { transform: translateY(-8px) rotate(3deg) scaleX(0.98); }
+}
+
+/* IDLE: Look Around */
+.state-idle.idle-var-look .head-part {
+  animation: idle-look-anim 2.5s ease-in-out infinite !important;
+  transform-origin: 110px 145px;
+}
+@keyframes idle-look-anim {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  30% { transform: translateX(-12px) rotate(-6deg); }
+  70% { transform: translateX(12px) rotate(6deg); }
+}
+
+/* IDLE: Ear Wiggle */
+.state-idle.idle-var-wiggle .left-paw {
+  animation: left-ear-wiggle 1.2s ease-in-out infinite !important;
+}
+.state-idle.idle-var-wiggle .right-paw {
+  animation: right-ear-wiggle 1.2s ease-in-out infinite 0.6s !important;
+}
+@keyframes left-ear-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-25deg); }
+}
+@keyframes right-ear-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(25deg); }
+}
+
+/* IDLE: Yawn */
+.state-idle.idle-var-yawn .head-part {
+  animation: idle-yawn-anim 2.2s ease-in-out infinite !important;
+  transform-origin: 110px 145px;
+}
+@keyframes idle-yawn-anim {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  40% { transform: translateY(-14px) scaleY(1.15) scaleX(0.92); }
+  70% { transform: translateY(2px) scaleY(0.95); }
+}
+
+/* SLEEP: Curl (Клубочком) */
+.state-sleep.sleep-var-curl .body-part,
+.state-sleep.sleep-var-curl .head-part,
+.state-sleep.sleep-var-curl .legs-part,
+.state-sleep.sleep-var-curl .paw {
+  animation: sleep-curl-anim 3.8s ease-in-out infinite !important;
+  transform-origin: 110px 185px;
+}
+@keyframes sleep-curl-anim {
+  0%, 100% { transform: translateY(22px) scaleX(0.88) scaleY(0.85); }
+  50% { transform: translateY(18px) scaleX(0.92) scaleY(0.90); }
+}
+
+/* SLEEP: Flat (На животике) */
+.state-sleep.sleep-var-flat .body-part,
+.state-sleep.sleep-var-flat .head-part,
+.state-sleep.sleep-var-flat .legs-part,
+.state-sleep.sleep-var-flat .paw {
+  animation: sleep-flat-anim 4.2s ease-in-out infinite !important;
+  transform-origin: 110px 185px;
+}
+@keyframes sleep-flat-anim {
+  0%, 100% { transform: translateY(24px) scaleX(1.12) scaleY(0.78); }
+  50% { transform: translateY(20px) scaleX(1.08) scaleY(0.84); }
+}
+
+/* CHEW: Hop */
+.chew-var-hop .body-part,
+.chew-var-hop .head-part {
+  animation: chew-hop-anim 0.45s ease-in-out infinite !important;
+  transform-origin: 110px 185px;
+}
+@keyframes chew-hop-anim {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px) scaleY(1.06); }
+}
+
+/* WALK: Sneak */
+.state-walking.walk-var-sneak .body-part,
+.state-walking.walk-var-sneak .head-part {
+  animation: walk-sneak-anim 0.8s ease-in-out infinite !important;
+  transform-origin: 110px 185px;
+}
+@keyframes walk-sneak-anim {
+  0%, 100% { transform: translateY(10px) rotate(-2deg); }
+  50% { transform: translateY(14px) rotate(2deg); }
+}
+
+/* WALK: Hop */
+.state-walking.walk-var-hop .body-part,
+.state-walking.walk-var-hop .head-part {
+  animation: walk-hop-anim 0.5s ease-in-out infinite !important;
+  transform-origin: 110px 185px;
+}
+@keyframes walk-hop-anim {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px) scaleY(1.08); }
 }
 
 /* --- Radial menu --- */
@@ -517,26 +735,31 @@ html, body, #root {
 
 .cookie-fly {
   position: absolute;
-  top: -20px;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 28px;
-  animation: cookie-drop 0.6s ease-in forwards;
+  font-size: 32px;
+  animation: cookie-drop-eat 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   pointer-events: none;
   z-index: 26;
 }
 
-@keyframes cookie-drop {
+@keyframes cookie-drop-eat {
   0% {
-    transform: translateX(-50%) translateY(-20px) rotate(-20deg) scale(0.5);
+    transform: translateX(-50%) translateY(-50px) rotate(-45deg) scale(0.4);
     opacity: 0;
   }
-  40% {
+  35% {
     opacity: 1;
+    transform: translateX(-50%) translateY(35px) rotate(20deg) scale(1.15);
+  }
+  75% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(95px) rotate(180deg) scale(0.85);
   }
   100% {
-    transform: translateX(-50%) translateY(120px) rotate(10deg) scale(1);
-    opacity: 1;
+    opacity: 0;
+    transform: translateX(-50%) translateY(110px) rotate(360deg) scale(0);
   }
 }
 
