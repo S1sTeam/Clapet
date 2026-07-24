@@ -34,8 +34,6 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Install dependencies (macOS/Linux)
         if: matrix.platform != 'windows-latest'
@@ -56,11 +54,21 @@ jobs:
           tagName: v1.0.0-build2
           releaseName: 'v1.0.0 (BUILD #2)'
           releaseBody: |
-            ## 🐾 Clapet v1.0.0 (BUILD #2) Multiplatform Release
-            
-            ### ✨ What's New:
+            ## Downloads
+
+            | Platform | Architecture | File |
+            | --- | --- | --- |
+            | Windows | x64 | `Clapet_1.0.0_x64-setup.exe` |
+            | Windows | x64 (MSI) | `Clapet_1.0.0_x64_en-US.msi` |
+            | macOS | Universal (ARM64 / x64) | `Clapet_1.0.0_universal.dmg` |
+
+            ---
+
+            ## Changelog
+
+            ### 🐾 What's New in v1.0.0 (BUILD #2):
             - ⚡ **Shake to Wake & Furious Red State** — Pet falls asleep on side. Grab & shake violently to wake up in angry red rage (`#ff2222`)!
-            - 🎧 **Smart PC Audio Music Detector & Dance Party** — Clapet auto-detects real music (SoundCloud, Spotify, YouTube Music, VK, AIMP, MP3/FLAC) and grooves with musical note particles.
+            - 🎧 **Smart PC Audio Music Detector & Dance Party** — Clapet auto-detects real music (SoundCloud, Spotify, YouTube Music, VK, AIMP, MP3/FLAC) and grooves with musical note particles. Skips ads intelligently!
             - 🤖 **Custom System Prompt Enforcer** — Override Clapet's personality in AI settings!
             - 🤪 **Nihmadev 3000 Freak Easter Egg** — Type `Нихма` or `Nihma` into AI chat to trigger a 12-second crazy glitched freak mode!
             - 📐 **Dynamic Adaptive Window & 60 FPS LERP Eyes** — Zero invisible hitbox blocking; window expands dynamically for thought bubbles.
