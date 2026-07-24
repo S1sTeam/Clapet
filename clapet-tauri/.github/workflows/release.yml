@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
+  publish-tauri:
     permissions:
       contents: write
     strategy:
@@ -15,9 +15,17 @@ jobs:
       matrix:
         include:
           - platform: 'windows-latest'
+            target: 'x86_64-pc-windows-msvc'
             args: ''
           - platform: 'macos-latest'
-            args: '--target universal-apple-darwin'
+            target: 'x86_64-apple-darwin'
+            args: ''
+          - platform: 'macos-latest'
+            target: 'aarch64-apple-darwin'
+            args: ''
+          - platform: 'ubuntu-22.04'
+            target: 'x86_64-unknown-linux-gnu'
+            args: ''
 
     runs-on: ${{ matrix.platform }}
 
@@ -25,27 +33,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install system dependencies (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: clapet-tauri/package-lock.json
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Install dependencies (macOS/Linux)
-        if: matrix.platform != 'windows-latest'
-        run: |
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+        with:
+          targets: ${{ matrix.target }}
 
       - name: Install frontend dependencies
         run: |
           cd clapet-tauri
-          npm ci
+          npm install
 
-      - name: Build Tauri App & Publish Artifacts to Release
+      - name: Build Tauri App & Upload Assets
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,25 +62,6 @@ jobs:
           projectPath: ./clapet-tauri
           tagName: v1.0.0-build2
           releaseName: 'v1.0.0 (BUILD #2)'
-          releaseBody: |
-            ## Downloads
-
-            | Platform | Architecture | File |
-            | --- | --- | --- |
-            | Windows | x64 | `Clapet_1.0.0_x64-setup.exe` |
-            | Windows | x64 (MSI) | `Clapet_1.0.0_x64_en-US.msi` |
-            | macOS | Universal (ARM64 / x64) | `Clapet_1.0.0_universal.dmg` |
-
-            ---
-
-            ## Changelog
-
-            ### 🐾 What's New in v1.0.0 (BUILD #2):
-            - ⚡ **Shake to Wake & Furious Red State** — Pet falls asleep on side. Grab & shake violently to wake up in angry red rage (`#ff2222`)!
-            - 🎧 **Smart PC Audio Music Detector & Dance Party** — Clapet auto-detects real music (SoundCloud, Spotify, YouTube Music, VK, AIMP, MP3/FLAC) and grooves with musical note particles. Skips ads intelligently!
-            - 🤖 **Custom System Prompt Enforcer** — Override Clapet's personality in AI settings!
-            - 🤪 **Nihmadev 3000 Freak Easter Egg** — Type `Нихма` or `Nihma` into AI chat to trigger a 12-second crazy glitched freak mode!
-            - 📐 **Dynamic Adaptive Window & 60 FPS LERP Eyes** — Zero invisible hitbox blocking; window expands dynamically for thought bubbles.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
