@@ -1,0 +1,69 @@
+name: Release Multiplatform Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'windows-latest'
+            args: ''
+          - platform: 'macos-latest'
+            args: '--target universal-apple-darwin'
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: clapet-tauri/package-lock.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Install dependencies (macOS/Linux)
+        if: matrix.platform != 'windows-latest'
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install frontend dependencies
+        run: |
+          cd clapet-tauri
+          npm ci
+
+      - name: Build Tauri App & Publish Artifacts to Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ./clapet-tauri
+          tagName: v1.0.0-build2
+          releaseName: 'v1.0.0 (BUILD #2)'
+          releaseBody: |
+            ## 🐾 Clapet v1.0.0 (BUILD #2) Multiplatform Release
+            
+            ### ✨ What's New:
+            - ⚡ **Shake to Wake & Furious Red State** — Pet falls asleep on side. Grab & shake violently to wake up in angry red rage (`#ff2222`)!
+            - 🎧 **Smart PC Audio Music Detector & Dance Party** — Clapet auto-detects real music (SoundCloud, Spotify, YouTube Music, VK, AIMP, MP3/FLAC) and grooves with musical note particles.
+            - 🤖 **Custom System Prompt Enforcer** — Override Clapet's personality in AI settings!
+            - 🤪 **Nihmadev 3000 Freak Easter Egg** — Type `Нихма` or `Nihma` into AI chat to trigger a 12-second crazy glitched freak mode!
+            - 📐 **Dynamic Adaptive Window & 60 FPS LERP Eyes** — Zero invisible hitbox blocking; window expands dynamically for thought bubbles.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
